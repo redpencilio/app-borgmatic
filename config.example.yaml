@@ -4,7 +4,7 @@ source_directories:
     - /data
 
 repositories:
-    - path: "ssh://user@host:23/./$(hostname).borg"
+    - path: "ssh://user@host:23/./{hostname}.borg"
 
 encryption_passphrase: "A VERY VERY LONG AND COMPLICATED PASSPHRASE"
 
