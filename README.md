@@ -37,11 +37,15 @@ EOF
 cp /etc/borgmatic/config.example.yaml /etc/borgmatic/config.yaml
 ```
 7. Modify it...
-8. Initialize the borg repository:
+8. **MAKE SURE TO `chmod` THE RESULTING FILE**, it will contain the passphrase:
+```sh
+chown root: /etc/borgmatic/config.yaml && chmod 600 /etc/borgmatic/config.yaml
+```
+9. Initialize the borg repository:
 ```sh
 borgmatic init --encryption repokey
 ```
-9. Setup a crontab
+10. Setup a crontab
 
 ## Why install using `pipx`?
 
