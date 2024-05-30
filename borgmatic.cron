@@ -1,0 +1,1 @@
+45 5 * * * root /root/.local/bin/borgmatic --verbosity -1 --syslog-verbosity 1

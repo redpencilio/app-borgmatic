@@ -45,7 +45,10 @@ chown root: /etc/borgmatic/config.yaml && chmod 600 /etc/borgmatic/config.yaml
 ```sh
 borgmatic init --encryption repokey
 ```
-10. Setup a crontab
+10. Setup a crontab:
+```sh
+cp /etc/borgmatic/borgmatic.cron /etc/cron.d/borgmatic # and modify if needed
+```
 
 ## Why install using `pipx`?
 
