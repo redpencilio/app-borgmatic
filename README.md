@@ -5,9 +5,11 @@ This repository helps setting up backups using [borgmatic](https://torsion.org/b
 ## HOWTO
 
 1. Be root on the server
-2. Install borgmatic:
+2. Install borg and borgmatic:
 ```sh
-apt install borgmatic
+apt install borgbackup pipx
+pipx ensurepath && source ~/.bashrc
+pipx install borgmatic
 ```
 3. Clone this repo to `/etc/borgmatic`:
 ```sh
@@ -30,8 +32,19 @@ put /tmp/authorized_keys .ssh/authorized_keys
 bye
 EOF
 ```
-6. Initialize the borg repository:
+6. Create a local `config.yaml` file from the provided example:
+```sh
+cp /etc/borgmatic/config.example.yaml /etc/borgmatic/config.yaml
+```
+7. Modify it...
+8. Initialize the borg repository:
 ```sh
 borgmatic init --encryption repokey
 ```
-7. Setup a crontab
+9. Setup a crontab
+
+## Why install using `pipx`?
+
+Previous versions of this deployment used the Debian/Ubuntu packages, which are older versions.
+With `borgmatic` 1.6, 1.7, and especially 1.8, changes in the configuration file have been made.
+In particular, the way we use includes to be able to use a `.gitignore`d config file isn't possible in versions from the packages.

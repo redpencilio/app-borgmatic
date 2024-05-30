@@ -1,0 +1,11 @@
+<<: !include /etc/borgmatic/config.base.yaml
+
+source_directories:
+    - /data
+
+repositories:
+    - path: "ssh://user@host:23/./$(hostname).borg"
+
+encryption_passphrase: "A VERY VERY LONG AND COMPLICATED PASSPHRASE"
+
+keep_yearly: 5
