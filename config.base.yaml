@@ -1,5 +1,10 @@
 ssh_command: ssh -i /root/.ssh/backups_rsa
 
+source_directories:
+    - /data/backups
+    - /var/lib/docker/volumes/
+    - /var/lib/docker/containers/*/*.logs
+
 keep_daily: 7
 keep_weekly: 4
 keep_monthly: 6
