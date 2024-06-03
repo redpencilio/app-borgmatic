@@ -2,6 +2,15 @@
 
 This repository helps setting up backups using [borgmatic](https://torsion.org/borgmatic/) on a given server.
 
+## Principles
+
+This repository is to be cloned to `/etc/borgmatic`.
+By default, Borgmatic expects a configuration file at `/etc/borgmatic/config.yaml`.
+This file is in `.gitignore`, so that it can be configured by hand.
+The example configuration file has an `include` statement to pull a base configuration, common to all servers.
+
+Note that scalar values are overridden, but lists and dicts are merged.
+
 ## HOWTO
 
 1. Be root on the server
