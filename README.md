@@ -30,12 +30,14 @@ yes n | ssh-keygen -f ~/.ssh/backups_rsa -P ''
 ```
 5. Authorize the key on backup server.
    We're not using `ssh-copy-id` because some Ubuntu versions don't have SFTP mode of
-   `ssh-copy-id`, which is needed by Hetzner's storage boxes:
+   `ssh-copy-id`, which is needed by Hetzner's storage boxes.
+
+   **Note**: Adding the `command=...,restrict` part to the line containing the key prevents SFTP/SSH use for anything other than remote borg commands, which helps mitigate the situation where an attacker completely compromises the server:
 ```sh
 sftp -P <port> -o StrictHostKeyChecking=accept-new <user>@<host> << EOF
 mkdir .ssh
 get .ssh/authorized_keys /tmp/authorized_keys
-!grep -q "$(cat /root/.ssh/backups_rsa.pub)" /tmp/authorized_keys || cat /root/.ssh/backups_rsa.pub >> /tmp/authorized_keys
+!grep -q "$(cat /root/.ssh/backups_rsa.pub)" /tmp/authorized_keys || echo 'command="borg serve --umask=077 --info",restrict' $(cat /root/.ssh/backups_rsa.pub) >> /tmp/authorized_keys
 put /tmp/authorized_keys .ssh/authorized_keys
 !rm /tmp/authorized_keys
 bye
