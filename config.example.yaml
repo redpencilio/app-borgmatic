@@ -1,36 +1,39 @@
-<<: !include /etc/borgmatic/config.base.yaml
+# You can include some common configuration if needed.
+# Note that scalar values are overridden, but lists and dicts are merged.
+# <<: !include /etc/borgmatic/config.common.yaml
 
-source_directories:
-    - /data/backups
+# If using multiple config files, you can use different repositories, or keep the same
+# for all configurations. In this case, make sure to provide a separate archive_name_format
+# for each configuration, as pruning (and listing) won't be able to differentiate the
+# archives:
+# archive_name_format: '{hostname}-documents-{now}'
 
 repositories:
     - path: "ssh://user@host:23/./{hostname}.borg"
-
+      label: main
 encryption_passphrase: "A VERY VERY LONG AND COMPLICATED PASSPHRASE"
+ssh_command: ssh -i /root/.ssh/backups_rsa
 
-keep_yearly: 5
+source_directories:
+    - /data/backups
+    - /var/lib/docker/volumes/
+    - /var/lib/docker/containers/*/*.log
+    - /data/app-something/data/db/backups
+    # - /data/app-http-logger/data/logs
+    # - /data/app-http-logger/data/encrypted
+    # - /data/app-http-logger/data/compressed
 
 # before_backup:
     # - /data/useful-scripts/virtuoso-backup.sh <container>
-    # - /data/useful-scripts/backup-hyperledger-fabric-couchdb.sh <container>
+    # - /data/useful-scripts/virtuoso-backup.sh <another_container>
+
 # after_backup:
     # - cleanup scripts are also possible
 
-# postgresql_databases:
-    # - name: all, or name of a particular database
-      # hostname: this can be a container name
-      # port: exposed container port on the host
-      # username: superuser for the database
-      # password: superuser's password
-      # # if the host doesn't have a dump command:
-      # pg_dump_command: docker exec pg_container pg_dump
-      # # if the host doesn't have a restore command:
-      # pg_restore_command: docker exec pg_container pg_restore
-# mariadb_databases:
-    # - name: all, or name of a particular database
-      # hostname: this can be a container name
-      # port: exposed container port on the host
-      # username: connection user for the database
-      # password: connection user's password
-      # # if the host doesn't have a dump command:
-      # mariadb_dump_command: docker exec mariadb_container mariadb-dump
+keep_daily: 7
+keep_weekly: 4
+keep_monthly: 6
+keep_yearly: 1
+
+# For app-http-logger, we might need to keep all backups within the last 5 years:
+# keep_within: 5y

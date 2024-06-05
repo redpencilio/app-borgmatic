@@ -7,9 +7,14 @@ This repository helps setting up backups using [borgmatic](https://torsion.org/b
 This repository is to be cloned to `/etc/borgmatic`.
 By default, Borgmatic expects a configuration file at `/etc/borgmatic/config.yaml`.
 This file is in `.gitignore`, so that it can be configured by hand.
-The example configuration file has an `include` statement to pull a base configuration, common to all servers.
 
-Note that scalar values are overridden, but lists and dicts are merged.
+## Per-app configuration
+
+It is also possible to use multiple configuration files with different configuration values, to backup different parts of the server with a different backup policy.
+This is for example useful to apply different retentions for logs and backup dumps.
+
+To use this, instead of `/etc/borgmatic/config.yaml`, you should write multiple files in `/etc/borgmatic.d/*.yaml`.
+Each invocation of `borgmatic` will apply these files independently, in sequence.
 
 ## HOWTO
 
@@ -47,14 +52,24 @@ EOF
 ```sh
 cp /etc/borgmatic/config.example.yaml /etc/borgmatic/config.yaml
 ```
-7. Modify it...
-8. **MAKE SURE TO `chmod` THE RESULTING FILE**, it will contain the passphrase:
+   Or if using multiple configuration files:
 ```sh
-chown root: /etc/borgmatic/config.yaml && chmod 600 /etc/borgmatic/config.yaml
+mkdir -p /etc/borgmatic.d
+cp /etc/borgmatic/config.example.yaml /etc/borgmatic.d/main.yaml
+cp /etc/borgmatic/config.example.yaml /etc/borgmatic.d/something.yaml
 ```
-9. Initialize the borg repository:
+7. Modify it/them...
+8. **MAKE SURE TO `chmod` THE RESULTING FILE(S)**, it/they will contain the passphrase:
+```sh
+for f in /etc/borgmatic/config.yaml /etc/borgmatic.d/*.yaml; do
+    chown root: "$f"; chmod 600 "$f"
+done
+```
+9. Initialize the borg repository (multiple repositories will get initialize per configuration files):
 ```sh
 borgmatic init --encryption repokey
+# if append-only is wanted:
+borgmatic init --encryption repokey --append-only
 ```
 10. Setup a crontab:
 ```sh
