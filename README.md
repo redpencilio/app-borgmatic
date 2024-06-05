@@ -48,6 +48,10 @@ put /tmp/authorized_keys .ssh/authorized_keys
 bye
 EOF
 ```
+   Additional restrictions can be set, to restrict Borg to specific repositories, or force append-only mode:
+```sh
+command="borg serve --umask=077 --info --append-only --restrict-to-repository /home/something.borg/ --restrict-to-repository /home/something-else.borg/",restrict ssh-rsa ...
+```
 6. Create a local `config.yaml` file from the provided example:
 ```sh
 cp /etc/borgmatic/config.example.yaml /etc/borgmatic/config.yaml
