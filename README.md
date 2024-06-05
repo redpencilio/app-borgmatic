@@ -69,7 +69,7 @@ for f in /etc/borgmatic/config.yaml /etc/borgmatic.d/*.yaml; do
     chown root: "$f"; chmod 600 "$f"
 done
 ```
-9. Initialize the borg repository (multiple repositories will get initialize per configuration files):
+9. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
 ```sh
 borgmatic init --encryption repokey
 # if append-only is wanted:
