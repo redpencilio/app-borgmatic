@@ -1,18 +1,13 @@
-# You can include some common configuration if needed.
-# Note that scalar values are overridden, but lists and dicts are merged.
-# <<: !include /etc/borgmatic/config.common.yaml
-
-# If using multiple config files, you can use different repositories, or keep the same
-# for all configurations. In this case, make sure to provide a separate archive_name_format
-# for each configuration, as pruning (and listing) won't be able to differentiate the
-# archives:
-# archive_name_format: '{hostname}-documents-{now}'
+# Using containers means the hostname might change, so it's better to hard-code instead
+# of using the Borg placeholder '{hostname}'.
+# This applies to archive_name_format and in the repository path
+archive_name_format: '${HOSTNAME}-main-{now}'
 
 repositories:
-    - path: "ssh://user@host:23/./{hostname}.borg"
+    - path: "ssh://user@host:23/./${HOSTNAME}-main.borg"
       label: main
 encryption_passphrase: "A VERY VERY LONG AND COMPLICATED PASSPHRASE"
-ssh_command: ssh -i /root/.ssh/backups_rsa
+ssh_command: ssh -i /root/.ssh/id_borgmatic
 
 source_directories:
     - /data/backups
@@ -29,6 +24,9 @@ source_directories:
 
 # after_backup:
     # - cleanup scripts are also possible
+
+on_error:
+    - echo "Error while creating a backup."
 
 keep_daily: 7
 keep_weekly: 4

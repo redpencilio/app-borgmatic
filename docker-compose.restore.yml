@@ -1,0 +1,13 @@
+version: '3'
+services:
+  borgmatic:
+    container_name: borgmatic-restore
+    cap_add:
+      - SYS_ADMIN
+    volumes:
+      - ./data/restore:/restore
+    security_opt:
+      - apparmor:unconfined
+      - label:disable
+    devices:
+      - /dev/fuse:/dev/fuse

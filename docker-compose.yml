@@ -1,0 +1,12 @@
+version: '3'
+services:
+  borgmatic:
+    image: ghcr.io/borgmatic-collective/borgmatic
+    container_name: borgmatic
+    volumes:
+      - ./data/borgmatic.d:/etc/borgmatic.d                 # borgmatic config file(s) + crontab.txt
+      - ./data/.borgmatic:/root/.borgmatic                  # borgmatic state files
+      - ./data/.config/borg:/root/.config/borg              # config and keyfiles
+      - ./data/.cache/borg:/root/.cache/borg                # checksums used for deduplication
+      - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro  # ssh key for remote repositories
+      - /root/.ssh/known_hosts:/root/.ssh/known_hosts       # ssh known_hosts file

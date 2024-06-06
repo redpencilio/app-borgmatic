@@ -1,39 +1,30 @@
 # app-borgmatic
 
-This repository helps setting up backups using [borgmatic](https://torsion.org/borgmatic/) on a given server.
+This repository helps setting up backups using [borgmatic](https://torsion.org/borgmatic/) on a given server, using `docker-compose`.
 
 ## Principles
 
-This repository is to be cloned to `/etc/borgmatic`.
-By default, Borgmatic expects a configuration file at `/etc/borgmatic/config.yaml`.
-This file is in `.gitignore`, so that it can be configured by hand.
+This repository is to be cloned to, say, `/data/app-borgmatic`.
+By default, Borgmatic expects a configurations files inside `/etc/borgmatic.d/`.
+This directory is bind-mounted to `./data/borgmatic.d/`, so that the configuration can be added by hand.
 
 ## Per-app configuration
 
-It is also possible to use multiple configuration files with different configuration values, to backup different parts of the server with a different backup policy.
+It is possible to use multiple configuration files with different configuration values, to backup different parts of the server with a different backup policy.
 This is for example useful to apply different retentions for logs and backup dumps.
 
-To use this, instead of `/etc/borgmatic/config.yaml`, you should write multiple files in `/etc/borgmatic.d/*.yaml`.
+To use this, just add several `.yaml` files inside `./data/borgmatic.d/`.
 Each invocation of `borgmatic` will apply these files independently, in sequence.
 
-## HOWTO
+## Setup HOWTO
 
 1. Be root on the server
-2. Install borg and borgmatic:
+2. Clone this repo to `/data/app-borgmatic`.
+3. Create an SSH keypair for backups, without passphrase, and without overwriting existing keys:
 ```sh
-apt install borgbackup pipx
-pipx ensurepath && source ~/.bashrc
-pipx install borgmatic
+yes n | ssh-keygen -f ~/.ssh/id_borgmatic -N ''
 ```
-3. Clone this repo to `/etc/borgmatic`:
-```sh
-git clone https://github.com/redpencilio/app-borgmatic.git /etc/borgmatic
-```
-4. Create an SSH keypair for backups, without passphrase, and without overwriting existing keys:
-```sh
-yes n | ssh-keygen -f ~/.ssh/backups_rsa -P ''
-```
-5. Authorize the key on backup server.
+4. Authorize the key on backup server.
    We're not using `ssh-copy-id` because some Ubuntu versions don't have SFTP mode of
    `ssh-copy-id`, which is needed by Hetzner's storage boxes.
 
@@ -42,7 +33,7 @@ yes n | ssh-keygen -f ~/.ssh/backups_rsa -P ''
 sftp -P <port> -o StrictHostKeyChecking=accept-new <user>@<host> << EOF
 mkdir .ssh
 get .ssh/authorized_keys /tmp/authorized_keys
-!grep -q "$(cat /root/.ssh/backups_rsa.pub)" /tmp/authorized_keys || echo 'command="borg serve --umask=077 --info",restrict' $(cat /root/.ssh/backups_rsa.pub) >> /tmp/authorized_keys
+!grep -q "$(cat /root/.ssh/id_borgmatic.pub)" /tmp/authorized_keys || echo 'command="borg serve --umask=077 --info",restrict' $(cat /root/.ssh/id_borgmatic.pub) >> /tmp/authorized_keys
 put /tmp/authorized_keys .ssh/authorized_keys
 !rm /tmp/authorized_keys
 bye
@@ -52,36 +43,73 @@ EOF
 ```sh
 command="borg serve --umask=077 --info --append-only --restrict-to-repository /home/something.borg/ --restrict-to-repository /home/something-else.borg/",restrict ssh-rsa ...
 ```
-6. Create a local `config.yaml` file from the provided example:
+5. Create `./data/borgmatic.d/*.yaml` file(s) from the provided example:
 ```sh
-cp /etc/borgmatic/config.example.yaml /etc/borgmatic/config.yaml
+cp config.example.yaml data/borgmatic.d/config.yaml
 ```
    Or if using multiple configuration files:
 ```sh
-mkdir -p /etc/borgmatic.d
-cp /etc/borgmatic/config.example.yaml /etc/borgmatic.d/main.yaml
-cp /etc/borgmatic/config.example.yaml /etc/borgmatic.d/something.yaml
+cp config.example.yaml data/borgmatic.d/main.yaml
+cp config.example.yaml data/borgmatic.d/something.yaml
 ```
-7. Modify it/them...
-8. **MAKE SURE TO `chmod` THE RESULTING FILE(S)**, it/they will contain the passphrase:
+6. Modify it/them...
+7. **MAKE SURE TO `chmod` THE RESULTING FILE(S)**, it/they will contain the passphrase:
 ```sh
-for f in /etc/borgmatic/config.yaml /etc/borgmatic.d/*.yaml; do
+for f in data/borgmatic.d/*.yaml; do
     chown root: "$f"; chmod 600 "$f"
 done
 ```
-9. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
+8. Create a `docker-compose.override.yml` to add needed volumes depending on the `source_directories` of your config:
+```docker-compose
+version: '3'
+services:
+  borgmatic:
+    volumes:
+      - /data/backups:/data/backups:ro
+```
+9. Copy the example crontab, and modify as needed:
 ```sh
-borgmatic init --encryption repokey
+cp crontab.txt data/borgmatic.d/
+```
+10. Start the container:
+```sh
+docker compose up -d
+```
+11. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
+```sh
+docker compose exec borgmatic borgmatic init --encryption repokey
 # if append-only is wanted:
-borgmatic init --encryption repokey --append-only
+docker compose exec borgmatic borgmatic init --encryption repokey --append-only
 ```
-10. Setup a crontab:
+
+## Restore backups
+
+To be able to use Borg's FUSE mount capacities, we need to add some settings to the `docker-compose` file.
+These are bundled in `docker-compose.restore.yml`, including a volume mounted to a location on the host for restored files to go.
+
+So to restore backups:
+
+1. Stop the running `borgmatic` container:
 ```sh
-cp /etc/borgmatic/borgmatic.cron /etc/cron.d/borgmatic # and modify if needed
+docker compose down
 ```
-
-## Why install using `pipx`?
-
-Previous versions of this deployment used the Debian/Ubuntu packages, which are older versions.
-With `borgmatic` 1.6, 1.7, and especially 1.8, changes in the configuration file have been made.
-In particular, the way we use includes to be able to use a `.gitignore`d config file isn't possible in versions from the packages.
+2. Modify the `.env` to use `docker-compose.restore.yml` (the line is commented)
+3. Start the new restore container:
+```sh
+docker compose up -d
+```
+4. Run a shell on the container and mount needed archive(s)
+```sh
+docker compose exec borgmatic bash
+borgmatic mount --archive latest --mount-point /mnt
+```
+5. Copy/restore needed files to the mount point defined in `docker-compose.restore.yml`:
+```sh
+cp /mnt/data/backups/foo /restore
+```
+6. Unmount, exit and remove the restore container:
+```sh
+umount /mnt && exit
+docker compose down
+```
+7. Don't forget to change the `.env` back to what it was, and to start the borgmatic container again.
