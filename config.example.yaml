@@ -21,19 +21,21 @@ source_directories:
 # before_backup:
     # - /data/useful-scripts/virtuoso-backup.sh <container>
     # - /data/useful-scripts/virtuoso-backup.sh <another_container>
-
 # after_backup:
     # - find /data/app-http-logger/data/logs -type f -delete
 
 on_error:
     - echo "Error while creating a backup."
 
-keep_daily: 7
-keep_weekly: 4
-keep_monthly: 6
-keep_yearly: 1
-
-# For app-http-logger, we might need to keep all backups within the last 5 years:
+# By default, we consider being in append-only mode. If this is the case, we should disable
+# compacting and pruning. If not in append-only mode, set keep_* variables instead.
+skip_actions:
+    - compact
+    - prune
+# keep_daily: 7
+# keep_weekly: 4
+# keep_monthly: 6
+# keep_yearly: 1
 # keep_within: 5y
 
 # Borgmatic also provides special hooks for common databases. These have the advantage
@@ -57,4 +59,3 @@ keep_yearly: 1
       # password: connection user's password
       # # if the host doesn't have a dump command:
       # mariadb_dump_command: docker exec mariadb_container mariadb-dump
-
