@@ -23,7 +23,7 @@ source_directories:
     # - /data/useful-scripts/virtuoso-backup.sh <another_container>
 
 # after_backup:
-    # - cleanup scripts are also possible
+    # - find /data/app-http-logger/data/logs -type f -delete
 
 on_error:
     - echo "Error while creating a backup."
