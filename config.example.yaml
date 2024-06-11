@@ -43,15 +43,17 @@ skip_actions:
 # the host.
 # postgresql_databases:
     # - name: all
+      # format: plain
       # hostname: localhost
       # port: 5432
       # username: superuser for the database
       # password: superuser's password
-      # pg_dump_command: docker exec <container> pg_dumpall
+      # pg_dump_command: docker exec <container> pg_dump
       # pg_restore_command: docker exec <container> pg_restore
       # psql_command: docker exec <container> psql
 # mariadb_databases:
     # - name: all
+      # format: sql
       # hostname: localhost
       # port: 3306
       # username: connection user for the database
