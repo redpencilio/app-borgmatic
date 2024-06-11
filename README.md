@@ -19,11 +19,14 @@ Each invocation of `borgmatic` will apply these files independently, in sequence
 ## Setup HOWTO
 
 1. Be root on the server
+
 2. Clone this repo to `/data/app-borgmatic`.
+
 3. Create an SSH keypair for backups, without passphrase, and without overwriting existing keys:
 ```sh
 yes n | ssh-keygen -f ~/.ssh/id_borgmatic -N ''
 ```
+
 4. Authorize the key on backup server.
    We're not using `ssh-copy-id` because some Ubuntu versions don't have SFTP mode of
    `ssh-copy-id`, which is needed by Hetzner's storage boxes.
@@ -43,6 +46,7 @@ EOF
 ```sh
 command="borg serve --umask=077 --info --append-only --restrict-to-repository /home/something.borg/ --restrict-to-repository /home/something-else.borg/",restrict ssh-rsa ...
 ```
+
 5. Create `./data/borgmatic.d/*.yaml` file(s) from the provided example:
 ```sh
 cp config.example.yaml data/borgmatic.d/config.yaml
@@ -52,13 +56,16 @@ cp config.example.yaml data/borgmatic.d/config.yaml
 cp config.example.yaml data/borgmatic.d/main.yaml
 cp config.example.yaml data/borgmatic.d/something.yaml
 ```
+
 6. Modify it/them...
+
 7. **MAKE SURE TO `chmod` THE RESULTING FILE(S)**, it/they will contain the passphrase:
 ```sh
 for f in data/borgmatic.d/*.yaml; do
     chown root: "$f"; chmod 600 "$f"
 done
 ```
+
 8. Create a `docker-compose.override.yml` to add needed volumes depending on the `source_directories` of your config:
 ```docker-compose
 version: '3'
@@ -67,14 +74,17 @@ services:
     volumes:
       - /data/backups:/data/backups:ro
 ```
+
 9. Copy the example crontab, and modify as needed:
 ```sh
 cp crontab.txt data/borgmatic.d/
 ```
+
 10. Start the container:
 ```sh
 docker compose up -d
 ```
+
 11. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
 ```sh
 docker compose exec borgmatic borgmatic init --encryption repokey
@@ -93,23 +103,31 @@ So to restore backups:
 ```sh
 docker compose down
 ```
+
 2. Modify the `.env` to use `docker-compose.restore.yml` (the line is commented)
+
 3. Start the new restore container:
 ```sh
 docker compose up -d
 ```
+
 4. Run a shell on the container and mount needed archive(s)
 ```sh
 docker compose exec borgmatic bash
 borgmatic mount --archive latest --mount-point /mnt
 ```
-5. Copy/restore needed files to the mount point defined in `docker-compose.restore.yml`:
+
+5. Copy/restore needed files to the bind mount defined in `docker-compose.restore.yml`:
 ```sh
 cp /mnt/data/backups/foo /restore
 ```
+   Database dumps made with the `postgresql_databases` or `mariadb_databases` hooks are in `/root/.borgmatic/postgresql_databases/localhost/`.
+   But Borgmatic has restore commands to deal with the database dumps easily.
+
 6. Unmount, exit and remove the restore container:
 ```sh
 umount /mnt && exit
 docker compose down
 ```
+
 7. Don't forget to change the `.env` back to what it was, and to start the borgmatic container again.
