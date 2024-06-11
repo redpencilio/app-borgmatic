@@ -42,20 +42,19 @@ skip_actions:
 # that the dumps are streamed to the backup using a pipe, so they won't use space on
 # the host.
 # postgresql_databases:
-    # - name: all, or name of a particular database
-      # hostname: this can be a container name
-      # port: exposed container port on the host
+    # - name: all
+      # hostname: localhost
+      # port: 5432
       # username: superuser for the database
       # password: superuser's password
-      # # if the host doesn't have a dump command:
-      # pg_dump_command: docker exec pg_container pg_dump
-      # # if the host doesn't have a restore command:
-      # pg_restore_command: docker exec pg_container pg_restore
+      # pg_dump_command: docker exec <container> pg_dumpall
+      # pg_restore_command: docker exec <container> pg_restore
+      # psql_command: docker exec <container> psql
 # mariadb_databases:
-    # - name: all, or name of a particular database
-      # hostname: this can be a container name
-      # port: exposed container port on the host
+    # - name: all
+      # hostname: localhost
+      # port: 3306
       # username: connection user for the database
       # password: connection user's password
-      # # if the host doesn't have a dump command:
-      # mariadb_dump_command: docker exec mariadb_container mariadb-dump
+      # mariadb_dump_command: docker exec <container> mariadb-dump
+      # mariadb_command: docker exec <container> mariadb
