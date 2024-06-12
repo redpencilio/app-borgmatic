@@ -1,7 +1,7 @@
 version: '3'
 services:
   borgmatic:
-    image: ghcr.io/borgmatic-collective/borgmatic
+    image: ghcr.io/borgmatic-collective/borgmatic:1.8.11
     restart: always
     container_name: borgmatic
     volumes:
@@ -14,3 +14,19 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock           # docker socket to communicate with other containers
     environment:
       - DOCKERCLI=true
+
+  borgmatic-exporter:
+    image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.3
+    restart: always
+    container_name: borgmatic-exporter
+    volumes:
+      - ./data/borgmatic.d:/etc/borgmatic.d:ro
+      - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro
+      - /root/.ssh/known_hosts:/root/.ssh/known_hosts:ro
+    ports:
+      - 9996:9996
+    environment:
+      - BORGMATIC_EXPORTER_PORT=9996
+      - BORGMATIC_CONFIG=/etc/borgmatic.d/config.yaml
+      # Disable cron for this container:
+      - SUPERCRONIC_EXTRA_FLAGS=-test
