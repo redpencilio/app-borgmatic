@@ -75,15 +75,9 @@ services:
       - /data/backups:/data/backups:ro
 ```
 
-9. Optionnaly override the `CRON` variable in `docker-compose.override.yml`:
-```docker-compose
-version: '3'
-services:
-  borgmatic:
-    volumes:
-      - /data/backups:/data/backups:ro
-    environment:
-      - CRON=0 3 * * *
+9. Copy the example crontab, and modify as needed:
+```sh
+cp crontab.txt data/borgmatic.d/
 ```
 
 10. Start the container:
