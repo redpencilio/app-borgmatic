@@ -14,3 +14,4 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock           # docker socket to communicate with other containers
     environment:
       - DOCKERCLI=true
+      - CRON=45 5 * * *
