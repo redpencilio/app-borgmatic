@@ -66,13 +66,9 @@ for f in data/borgmatic.d/*.yaml; do
 done
 ```
 
-8. Create a `docker-compose.override.yml` to add needed volumes depending on the `source_directories` of your config:
-```docker-compose
-version: '3'
-services:
-  borgmatic:
-    volumes:
-      - /data/backups:/data/backups:ro
+8. Create a `docker-compose.override.yml`, and modify as needed:
+```sh
+cp docker-compose.override.example.yml docker-compose.override.yml
 ```
 
 9. Copy the example crontab, and modify as needed:

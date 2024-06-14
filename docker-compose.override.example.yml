@@ -1,0 +1,13 @@
+version: '3'
+services:
+  borgmatic:
+    # Each source_directory must be mounted here to be accessible to the container
+    volumes:
+      - /data/backups:/data/backups:ro
+      - /data/app-something/data/db/backups:/data/app-something/data/db/backups:ro
+
+  borgmatic-exporter:
+    environment:
+      # The exporter needs the exact names of config file(s)
+      # Separate with a column (:) if multiple
+      - BORGMATIC_CONFIG=/etc/borgmatic.d/main.yaml:/etc/borgmatic.d/other.yaml
