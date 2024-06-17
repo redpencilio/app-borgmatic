@@ -21,20 +21,10 @@ services:
     container_name: borgmatic-exporter
     volumes:
       - ./data/borgmatic.d:/etc/borgmatic.d:ro
+      - ./data/borgmatic-exporter/crontab.txt:/etc/borgmatic.d/crontab.txt:ro
       - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro
       - /root/.ssh/known_hosts:/root/.ssh/known_hosts:ro
-    expose:
-      - 9996
+      - ./data/borgmatic-exporter/metrics:/data/metrics
     environment:
       BORGMATIC_EXPORTER_PORT: 9996
       BORGMATIC_CONFIG: /etc/borgmatic.d/config.yaml
-      # Disable cron for this container:
-      SUPERCRONIC_EXTRA_FLAGS: "-test"
-    networks:
-      - proxy
-      - default
-
-networks:
-  proxy:
-    name: letsencrypt_default
-    external: true

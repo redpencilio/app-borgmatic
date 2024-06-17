@@ -1,6 +1,8 @@
 # app-borgmatic
 
 This repository helps setting up backups using [borgmatic](https://torsion.org/borgmatic/) on a given server, using `docker-compose`.
+It includes a `borgmatic-exporter` container to export metrics for Prometheus.
+The metrics are written to a text file in `./data/borgmatic-exporter/metrics/`, ready to be fed to a [node-exporter textfile collector](https://github.com/prometheus/node_exporter?tab=readme-ov-file#textfile-collector).
 
 ## Principles
 
@@ -76,12 +78,17 @@ cp docker-compose.override.example.yml docker-compose.override.yml
 cp crontab.txt data/borgmatic.d/
 ```
 
-10. Start the container:
+10. Copy the crontab for `borgmatic-exporter`, and modify if needed (by default metrics are written once per hour):
+```sh
+cp borgmatic-exporter_crontab.txt data/borgmatic-exporter/crontab.txt
+```
+
+11. Start the containers:
 ```sh
 docker compose up -d
 ```
 
-11. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
+12. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
 ```sh
 docker compose exec borgmatic borgmatic init --encryption repokey
 # if append-only is wanted:

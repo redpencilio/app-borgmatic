@@ -11,7 +11,3 @@ services:
       # The exporter needs the exact names of config file(s)
       # Separate with a column (:) if multiple
       BORGMATIC_CONFIG: "/etc/borgmatic.d/main.yaml:/etc/borgmatic.d/other.yaml"
-      # Add proxy configuration for letsencrypt proxy here
-      VIRTUAL_HOST: "..."
-      LETSENCRYPT_HOST: "..."
-      LETSENCRYPT_EMAIL: "..."
