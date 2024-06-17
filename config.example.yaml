@@ -43,7 +43,7 @@ skip_actions:
 # the host.
 # postgresql_databases:
     # - name: all
-      # format: plain
+      # format: custom
       # hostname: localhost
       # port: 5432
       # username: superuser for the database
