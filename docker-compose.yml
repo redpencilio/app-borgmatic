@@ -23,10 +23,18 @@ services:
       - ./data/borgmatic.d:/etc/borgmatic.d:ro
       - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro
       - /root/.ssh/known_hosts:/root/.ssh/known_hosts:ro
-    ports:
-      - 9996:9996
+    expose:
+      - 9996
     environment:
       - BORGMATIC_EXPORTER_PORT=9996
       - BORGMATIC_CONFIG=/etc/borgmatic.d/config.yaml
       # Disable cron for this container:
       - SUPERCRONIC_EXTRA_FLAGS=-test
+    networks:
+      - proxy
+      - default
+
+networks:
+  proxy:
+    name: letsencrypt_default
+    external: true
