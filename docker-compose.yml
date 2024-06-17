@@ -5,7 +5,7 @@ services:
     restart: always
     container_name: borgmatic
     volumes:
-      - ./data/borgmatic.d:/etc/borgmatic.d                 # borgmatic config file(s) + crontab.txt
+      - ./data/borgmatic.d:/etc/borgmatic.d:ro              # borgmatic config file(s) + crontab.txt
       - ./data/.borgmatic:/root/.borgmatic                  # borgmatic state files
       - ./data/.config/borg:/root/.config/borg              # config and keyfiles
       - ./data/.cache/borg:/root/.cache/borg                # checksums used for deduplication
