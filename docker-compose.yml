@@ -13,7 +13,7 @@ services:
       - /root/.ssh/known_hosts:/root/.ssh/known_hosts       # ssh known_hosts file
       - /var/run/docker.sock:/var/run/docker.sock           # docker socket to communicate with other containers
     environment:
-      - DOCKERCLI=true
+      DOCKERCLI: true
 
   borgmatic-exporter:
     image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.3
@@ -26,10 +26,10 @@ services:
     expose:
       - 9996
     environment:
-      - BORGMATIC_EXPORTER_PORT=9996
-      - BORGMATIC_CONFIG=/etc/borgmatic.d/config.yaml
+      BORGMATIC_EXPORTER_PORT: 9996
+      BORGMATIC_CONFIG: /etc/borgmatic.d/config.yaml
       # Disable cron for this container:
-      - SUPERCRONIC_EXTRA_FLAGS=-test
+      SUPERCRONIC_EXTRA_FLAGS: "-test"
     networks:
       - proxy
       - default
