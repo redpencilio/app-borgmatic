@@ -18,6 +18,9 @@ source_directories:
     # - /data/app-http-logger/data/encrypted
     # - /data/app-http-logger/data/compressed
 
+# exclude_patterns:
+    # - "/data/app-something/data/files/*-*-*T*:*:*.*/*"
+
 # before_backup:
     # - /data/useful-scripts/virtuoso-backup.sh <container>
     # - /data/useful-scripts/virtuoso-backup.sh <another_container>
