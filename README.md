@@ -134,3 +134,17 @@ docker compose down
 ```
 
 7. Don't forget to change the `.env` back to what it was, and to start the borgmatic container again.
+
+## Include borgmatic metrics in a configured `node-exporter`
+
+If the crontab for `borgmatic-exporter` was copied to `./data/borgmatic-exporter/crontab.txt`, metrics should be written to a text file, ready to be included in `node-exporter` through its `textfile` collector.
+
+You will need to edit the `node-exporter`'s `docker-compose.yml` to add a volume and a matching command argument:
+
+```yml
+volumes:
+  - ...
+  - /data/app-borgmatic/data/borgmatic-exporter/metrics:/data/borgmatic-metrics:ro
+command:
+  - "--collector.textfile.directory=/data/borgmatic-metrics"
+```
