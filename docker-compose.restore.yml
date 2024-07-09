@@ -1,7 +1,6 @@
 version: '3'
 services:
   borgmatic:
-    container_name: borgmatic-restore
     cap_add:
       - SYS_ADMIN
     volumes:
