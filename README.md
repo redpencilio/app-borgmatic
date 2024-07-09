@@ -125,8 +125,6 @@ borgmatic mount --archive latest --mount-point /mnt
 ```sh
 cp /mnt/data/backups/foo /restore
 ```
-   Database dumps made with the `postgresql_databases` or `mariadb_databases` hooks are in `/root/.borgmatic/postgresql_databases/localhost/`.
-   But Borgmatic has restore commands to deal with the database dumps easily.
 
 6. Unmount, exit and remove the restore container:
 ```sh
