@@ -37,6 +37,7 @@ yes n | ssh-keygen -f ~/.ssh/id_borgmatic -N ''
 ```sh
 sftp -P <port> -o StrictHostKeyChecking=accept-new <user>@<host> << EOF
 mkdir .ssh
+touch -ac .ssh/authorized_keys
 get .ssh/authorized_keys /tmp/authorized_keys
 !grep -q "$(cat /root/.ssh/id_borgmatic.pub)" /tmp/authorized_keys || echo 'command="borg serve --umask=077 --info",restrict' $(cat /root/.ssh/id_borgmatic.pub) >> /tmp/authorized_keys
 put /tmp/authorized_keys .ssh/authorized_keys
