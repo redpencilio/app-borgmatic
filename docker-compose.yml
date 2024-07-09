@@ -3,7 +3,6 @@ services:
   borgmatic:
     image: ghcr.io/borgmatic-collective/borgmatic:1.8.11
     restart: always
-    container_name: borgmatic
     volumes:
       - ./data/borgmatic.d:/etc/borgmatic.d:ro              # borgmatic config file(s) + crontab.txt
       - ./data/.borgmatic:/root/.borgmatic                  # borgmatic state files
@@ -18,7 +17,6 @@ services:
   borgmatic-exporter:
     image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.3
     restart: always
-    container_name: borgmatic-exporter
     volumes:
       - ./data/borgmatic.d:/etc/borgmatic.d:ro
       - ./data/borgmatic-exporter/crontab.txt:/etc/borgmatic.d/crontab.txt:ro
