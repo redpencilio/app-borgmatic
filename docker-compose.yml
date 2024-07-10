@@ -4,7 +4,7 @@ services:
     image: ghcr.io/borgmatic-collective/borgmatic:1.8.11
     restart: always
     volumes:
-      - ./data/borgmatic.d:/etc/borgmatic.d:ro              # borgmatic config file(s) + crontab.txt
+      - ./config/borgmatic.d:/etc/borgmatic.d:ro            # borgmatic config file(s) + crontab.txt
       - ./data/.borgmatic:/root/.borgmatic                  # borgmatic state files
       - ./data/.config/borg:/root/.config/borg              # config and keyfiles
       - ./data/.cache/borg:/root/.cache/borg                # checksums used for deduplication
@@ -18,8 +18,8 @@ services:
     image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.3
     restart: always
     volumes:
-      - ./data/borgmatic.d:/etc/borgmatic.d:ro
-      - ./data/borgmatic-exporter/crontab.txt:/etc/borgmatic.d/crontab.txt:ro
+      - ./config/borgmatic.d:/etc/borgmatic.d:ro
+      - ./config/borgmatic-exporter/crontab.txt:/etc/borgmatic.d/crontab.txt:ro
       - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro
       - /root/.ssh/known_hosts:/root/.ssh/known_hosts:ro
       - ./data/borgmatic-exporter/metrics:/data/metrics

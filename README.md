@@ -8,14 +8,14 @@ The metrics are written to a text file in `./data/borgmatic-exporter/metrics/`, 
 
 This repository is to be cloned to, say, `/data/app-borgmatic`.
 By default, Borgmatic expects a configurations files inside `/etc/borgmatic.d/`.
-This directory is bind-mounted to `./data/borgmatic.d/`, so that the configuration can be added by hand.
+This directory is bind-mounted to `./config/borgmatic.d/`, so that the configuration can be added by hand.
 
 ## Per-app configuration
 
 It is possible to use multiple configuration files with different configuration values, to backup different parts of the server with a different backup policy.
 This is for example useful to apply different retentions for logs and backup dumps.
 
-To use this, just add several `.yaml` files inside `./data/borgmatic.d/`.
+To use this, just add several `.yaml` files inside `./config/borgmatic.d/`.
 Each invocation of `borgmatic` will apply these files independently, in sequence.
 
 ## Setup HOWTO
@@ -50,21 +50,21 @@ EOF
 command="borg serve --umask=077 --info --append-only --restrict-to-repository /home/something.borg/ --restrict-to-repository /home/something-else.borg/",restrict ssh-rsa ...
 ```
 
-5. Create `./data/borgmatic.d/*.yaml` file(s) from the provided example:
+5. Create `./config/borgmatic.d/*.yaml` file(s) from the provided example:
 ```sh
-cp config.example.yaml data/borgmatic.d/config.yaml
+cp config.example.yaml config/borgmatic.d/config.yaml
 ```
    Or if using multiple configuration files:
 ```sh
-cp config.example.yaml data/borgmatic.d/main.yaml
-cp config.example.yaml data/borgmatic.d/something.yaml
+cp config.example.yaml config/borgmatic.d/main.yaml
+cp config.example.yaml config/borgmatic.d/something.yaml
 ```
 
 6. Modify it/them...
 
 7. **MAKE SURE TO `chmod` THE RESULTING FILE(S)**, it/they will contain the passphrase:
 ```sh
-for f in data/borgmatic.d/*.yaml; do
+for f in config/borgmatic.d/*.yaml; do
     chown root: "$f"; chmod 600 "$f"
 done
 ```
@@ -76,12 +76,12 @@ cp docker-compose.override.example.yml docker-compose.override.yml
 
 9. Copy the example crontab, and modify as needed:
 ```sh
-cp crontab.txt data/borgmatic.d/
+cp crontab.txt config/borgmatic.d/
 ```
 
 10. Copy the crontab for `borgmatic-exporter`, and modify if needed (by default metrics are written once per hour):
 ```sh
-cp borgmatic-exporter_crontab.txt data/borgmatic-exporter/crontab.txt
+cp borgmatic-exporter_crontab.txt config/borgmatic-exporter/crontab.txt
 ```
 
 11. Start the containers:
@@ -136,7 +136,7 @@ docker compose down
 
 ## Include borgmatic metrics in a configured `node-exporter`
 
-If the crontab for `borgmatic-exporter` was copied to `./data/borgmatic-exporter/crontab.txt`, metrics should be written to a text file, ready to be included in `node-exporter` through its `textfile` collector.
+If the crontab for `borgmatic-exporter` was copied to `./config/borgmatic-exporter/crontab.txt`, metrics should be written to a text file, ready to be included in `node-exporter` through its `textfile` collector.
 
 You will need to edit the `node-exporter`'s `docker-compose.yml` to add a volume and a matching command argument:
 
