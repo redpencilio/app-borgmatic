@@ -22,7 +22,7 @@ Each invocation of `borgmatic` will apply these files independently, in sequence
 
 ## How-to guides
 
-### Setup
+### Setup backups on a server
 
 1. Be root on the server
 
@@ -168,7 +168,7 @@ command:
   - "--collector.textfile.directory=/data/borgmatic-metrics"
 ```
 
-### Running commands inside a container
+### Run commands inside a container
 
 The syntax when running a `borgmatic` or `borg` command inside a container implies multiple `borgmatic` next to each other.
 The first `borgmatic` is the service name, the second is the `borgmatic` command from inside the container.
