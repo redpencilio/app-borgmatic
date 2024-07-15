@@ -4,13 +4,15 @@ This repository helps setting up backups using [borgmatic](https://torsion.org/b
 It includes a `borgmatic-exporter` container to export metrics for Prometheus.
 The metrics are written to a text file in `./data/borgmatic-exporter/metrics/`, ready to be fed to a [node-exporter textfile collector](https://github.com/prometheus/node_exporter?tab=readme-ov-file#textfile-collector).
 
-## Principles
+## Getting started
+
+### Principles
 
 This repository is to be cloned to, say, `/data/app-borgmatic`.
 By default, Borgmatic expects a configurations files inside `/etc/borgmatic.d/`.
 This directory is bind-mounted to `./config/borgmatic.d/`, so that the configuration can be added by hand.
 
-## Per-app configuration
+### Per-app configuration
 
 It is possible to use multiple configuration files with different configuration values, to backup different parts of the server with a different backup policy.
 This is for example useful to apply different retentions for logs and backup dumps.
@@ -18,7 +20,9 @@ This is for example useful to apply different retentions for logs and backup dum
 To use this, just add several `.yaml` files inside `./config/borgmatic.d/`.
 Each invocation of `borgmatic` will apply these files independently, in sequence.
 
-## Setup HOWTO
+## How-to guides
+
+### Setup
 
 1. Be root on the server
 
@@ -88,7 +92,19 @@ docker compose exec borgmatic borgmatic init --encryption repokey
 docker compose exec borgmatic borgmatic init --encryption repokey --append-only
 ```
 
-## Restore backups
+### Prevent locking yourself out
+
+The repository encryption uses [repokey](https://borgbackup.readthedocs.io/en/stable/usage/init.html#encryption-mode-tldr), which stores the encryption in the repository, and uses the passphrase from the config file for decryption.
+This means there are two items you should keep somewhere safe:
+
+- the passphrase
+- the key, needs to be exported:
+```bash
+docker compose exec borgmatic borgmatic key export
+```
+  yes, that's *two* `borgmatic borgmatic` in a row: the first is the `docker-compose` service, the second issues a `borgmatic` command within that container.
+
+### Restore backups on the client server
 
 To be able to use Borg's FUSE mount capacities, we need to add some settings to the `docker-compose` file.
 These are bundled in `docker-compose.restore.yml`, including a volume mounted to a location on the host for restored files to go.
@@ -126,7 +142,19 @@ docker compose down
 
 7. Don't forget to change the `.env` back to what it was, and to start the borgmatic container again.
 
-## Include borgmatic metrics in a configured `node-exporter`
+### Restore backups on a local machine
+
+As long as you have the passphrase, which is stored in the configuration file(s), you can inspect/export/mount the borgmatic repository from any machine.
+
+Just install Borgmatic (using this repo or locally on your machine) and use the same configuration file(s) as the one configured for the client server.
+
+You then have access to, for example:
+- `borgmatic list`
+- `borgmatic info`
+- `borgmatic extract ...`
+- `borgmatic mount ...`
+
+### Include borgmatic metrics in a configured `node-exporter`
 
 Metrics are written to a text file, ready to be included in `node-exporter` through its `textfile` collector.
 
@@ -139,3 +167,29 @@ volumes:
 command:
   - "--collector.textfile.directory=/data/borgmatic-metrics"
 ```
+
+### Running commands inside a container
+
+The syntax when running a `borgmatic` or `borg` command inside a container implies multiple `borgmatic` next to each other.
+The first `borgmatic` is the service name, the second is the `borgmatic` command from inside the container.
+
+Here are some examples:
+- Run `borgmatic` inside the `borgmatic` container:
+```bash
+docker compose exec borgmatic borgmatic ...
+```
+- If multiple config files and/or repositories are set, you will need to specify which repository for some commands:
+```bash
+docker compose exec borgmatic borgmatic list --repository foo
+```
+- If a `borg` command isn't natively handled by `borgmatic`, you can issue the `borg` subcommand to arbitrarily run a `borg` command.
+  This has the advantage of using the borgmatic configuration, simplifying the underlying `borg` command:
+```bash
+docker compose exec borgmatic borgmatic borg ...
+```
+
+## Reference
+
+- [https://torsion.org/borgmatic/](https://torsion.org/borgmatic/)
+- [https://github.com/borgmatic-collective/docker-borgmatic](https://github.com/borgmatic-collective/docker-borgmatic)
+- [https://github.com/maxim-mityutko/borgmatic-exporter](https://github.com/maxim-mityutko/borgmatic-exporter)
