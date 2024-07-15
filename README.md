@@ -144,7 +144,7 @@ docker compose down
 
 ### Restore backups on a local machine
 
-As long as you have the passphrase, which is stored in the configuration file(s), you can inspect/export/mount the borgmatic repository from any machine.
+As long as you have the passphrase and SSH key for the repository, you can inspect/export/mount the borgmatic repository from any machine.
 
 Just install Borgmatic (using this repo or locally on your machine) and use the same configuration file(s) as the one configured for the client server.
 
