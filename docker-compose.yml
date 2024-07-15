@@ -1,10 +1,10 @@
 version: '3'
 services:
   borgmatic:
-    image: ghcr.io/borgmatic-collective/borgmatic:1.8.11
+    image: ghcr.io/borgmatic-collective/borgmatic:1.8.13
     restart: always
     volumes:
-      - ./config/borgmatic.d:/etc/borgmatic.d:ro            # borgmatic config file(s) + crontab.txt
+      - ./config/borgmatic.d:/etc/borgmatic.d:ro            # borgmatic config file(s)
       - ./data/.borgmatic:/root/.borgmatic                  # borgmatic state files
       - ./data/.config/borg:/root/.config/borg              # config and keyfiles
       - ./data/.cache/borg:/root/.cache/borg                # checksums used for deduplication
@@ -14,16 +14,19 @@ services:
     environment:
       DOCKERCLI: true
       TZ: UTC
+      BACKUP_CRON: 45 5 * * *
+      CRON_COMMAND: /usr/local/bin/borgmatic --stats -v 0 2>&1
 
   borgmatic-exporter:
-    image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.3
+    image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.5
     restart: always
     volumes:
       - ./config/borgmatic.d:/etc/borgmatic.d:ro
-      - ./config/borgmatic-exporter/crontab.txt:/etc/borgmatic.d/crontab.txt:ro
       - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro
       - /root/.ssh/known_hosts:/root/.ssh/known_hosts:ro
       - ./data/borgmatic-exporter/metrics:/data/metrics
     environment:
       BORGMATIC_EXPORTER_PORT: 9996
       BORGMATIC_CONFIG: /etc/borgmatic.d/config.yaml
+      BACKUP_CRON: 12 * * * *
+      CRON_COMMAND: /usr/bin/curl -s http://localhost:9996/metrics > /data/metrics/borgmatic.prom

@@ -74,22 +74,14 @@ done
 cp docker-compose.override.example.yml docker-compose.override.yml
 ```
 
-9. Copy the example crontab, and modify as needed:
-```sh
-cp crontab.txt config/borgmatic.d/
-```
+9. Crontabs for both borgmatic and borgmatic-exporter are set using environment variables.
 
-10. Copy the crontab for `borgmatic-exporter`, and modify if needed (by default metrics are written once per hour):
-```sh
-cp borgmatic-exporter_crontab.txt config/borgmatic-exporter/crontab.txt
-```
-
-11. Start the containers:
+10. Start the containers:
 ```sh
 docker compose up -d
 ```
 
-12. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
+11. Initialize the borg repository (multiple repositories will be initialized as defined in configuration files):
 ```sh
 docker compose exec borgmatic borgmatic init --encryption repokey
 # if append-only is wanted:
@@ -136,7 +128,7 @@ docker compose down
 
 ## Include borgmatic metrics in a configured `node-exporter`
 
-If the crontab for `borgmatic-exporter` was copied to `./config/borgmatic-exporter/crontab.txt`, metrics should be written to a text file, ready to be included in `node-exporter` through its `textfile` collector.
+Metrics are written to a text file, ready to be included in `node-exporter` through its `textfile` collector.
 
 You will need to edit the `node-exporter`'s `docker-compose.yml` to add a volume and a matching command argument:
 
