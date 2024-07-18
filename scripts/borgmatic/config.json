@@ -1,0 +1,20 @@
+{
+    "version": "0.1",
+    "scripts": [
+        {
+            "documentation": {
+                "command": "generate-config",
+                "description": "Generates a configuration file for Borgmatic based on questions",
+                "arguments": []
+            },
+            "environment": {
+                "image": "python:3",
+                "interactive": true,
+                "script": "generate-config/run.py"
+            },
+            "mounts": {
+                "app": "/data/app/"
+            }
+        }
+    ]
+}

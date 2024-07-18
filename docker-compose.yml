@@ -11,6 +11,7 @@ services:
       - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro  # ssh key for remote repositories
       - /root/.ssh/known_hosts:/root/.ssh/known_hosts       # ssh known_hosts file
       - /var/run/docker.sock:/var/run/docker.sock           # docker socket to communicate with other containers
+      - ./scripts/borgmatic:/app/scripts                    # mu-scripts for borgmatic
     environment:
       DOCKERCLI: true
       TZ: UTC
