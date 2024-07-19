@@ -29,7 +29,7 @@ class ConfigGenerator:
         self.passphrase = self.get_passphrase()
         self.ssh_key_path = self.get_ssh_key_path()
         self.authorize_ssh_key_on_backup_server()
-        self.app_names: list = self.get_app_names()
+        self.app_names = self.get_app_names()
 
     def get_local_hostname(self) -> str:
         """Try to find local hostname and ask the user to confirm"""
@@ -126,20 +126,21 @@ class ConfigGenerator:
             ssh_key_path += ".pub"
 
         if self.append_only:
-            restrict_line = 'command="borg serve --umask=077 --info --append_only",restrict'
+            restrict_line = (
+                'command="borg serve --umask=077 --info --append_only",restrict'
+            )
         else:
             restrict_line = 'command="borg serve --umask=077 --info",restrict'
 
-        sftp_script = (
-            "mkdir .ssh\n"
-            "touch -ac .ssh/authorized_keys\n"
-            "get .ssh/authorized_keys /tmp/authorized_keys\n"
-            f'!grep -q "$(cat {ssh_key_path})" /tmp/authorized_keys'
-            f" || echo '{restrict_line}' $(cat {ssh_key_path}) >> /tmp/authorized_keys\n"
-            "put /tmp/authorized_keys .ssh/authorized_keys\n"
-            "!rm /tmp/authorized_keys\n"
-            "bye\n"
-        )
+        sftp_script = f"""
+            mkdir .ssh
+            touch -ac .ssh/authorized_keys
+            get .ssh/authorized_keys /tmp/authorized_keys
+            !grep -q "$(cat {ssh_key_path})" /tmp/authorized_keys || echo '{restrict_line}' $(cat {ssh_key_path}) >> /tmp/authorized_keys
+            put /tmp/authorized_keys .ssh/authorized_keys
+            !rm /tmp/authorized_keys
+            bye
+        """
 
         subprocess.run(
             [
