@@ -59,7 +59,9 @@ class ConfigGenerator:
     def get_backup_server_host(self) -> None:
         """Ask for the name of the backup server"""
 
-        self.backup_server_host = ask_user("Hostname of the backup server (can also be an IP address)", "")
+        self.backup_server_host = ask_user(
+            "Hostname of the backup server (can also be an IP address)", ""
+        )
 
     def get_backup_server_port(self) -> None:
         """Ask for the backup server's SSH port"""
@@ -172,6 +174,23 @@ class ConfigGenerator:
         )
 
         self.app_names = [app.strip() for app in app_names.split()]
+        self.source_directories = []
+        self.before_hooks = []
+
+        for app_name in self.app_names:
+            # Triplestore
+            user_answer = ask_user(f"Does {app_name} contain a triplestore?", "yN")
+            if user_answer == "y":
+                source_dir = os.path.join("/data", app_name, "data/db")
+                print(f"Adding {source_dir} to source_directories")
+                self.source_directories.append(source_dir)
+                print("Adding virtuoso backup hook")
+                self.before_hooks.append(
+                    "/data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps "
+                    f'--filter "label=com.docker.compose.project={app_name}" '
+                    '--filter "label=com.docker.compose.service=triplestore" '
+                    '--format "{{.Names}}")'
+                )
 
     def write_config(self) -> None:
         """Write the configuration"""
@@ -190,7 +209,7 @@ class ConfigGenerator:
             flags=re.MULTILINE,
         )
         config_content = re.sub(
-            r"repositories:\n\s+- path: (.*)\n\s+  label: (.*)",
+            r"^repositories:\n\s+- path: .*\n\s+  label: .*",
             "repositories:\n"
             f'    - path: "{self.backup_server_string}"\n'
             f"      label: {self.repo_name}",
@@ -203,15 +222,24 @@ class ConfigGenerator:
             config_content,
             flags=re.MULTILINE,
         )
+        config_content = re.sub(
+            r"^ssh_command:.*",
+            f"ssh_command: ssh -i {self.ssh_key_path}",
+            config_content,
+            flags=re.MULTILINE,
+        )
+        config_content = re.sub(
+            r"^source_directories:\n(?:\s+.*\n)+?\n",
+            "source_directories:\n"
+            "    - " + "\n    - ".join(dir for dir in self.source_directories) + "\n\n",
+            config_content,
+            flags=re.MULTILINE,
+        )
 
         print(config_content)
 
 
 def todo():
-    print(
-        "Does the app contain a triplestore?  (y/n)"
-        "=> if yes, add data/db folder to backup dirs and backup Virtuoso in before hook"
-    )
     print(
         "Does the app contain mu-search? => if yes, add data/elasticsearch to backup dirs"
     )
