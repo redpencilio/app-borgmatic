@@ -178,7 +178,7 @@ class ConfigGenerator:
         self.before_hooks = []
 
         for app_name in self.app_names:
-            # Triplestore
+            # triplestore
             user_answer = ask_user(f"Does {app_name} contain a triplestore?", "yN")
             if user_answer == "y":
                 source_dir = os.path.join("/data", app_name, "data/db")
@@ -191,6 +191,20 @@ class ConfigGenerator:
                     '--filter "label=com.docker.compose.service=triplestore" '
                     '--format "{{.Names}}")'
                 )
+
+            # mu-search
+            user_answer = ask_user(f"Does {app_name} contain mu-search?", "yN")
+            if user_answer == "y":
+                source_dir = os.path.join("/data", app_name, "data/elasticsearch")
+                print(f"Adding {source_dir} to source_directories")
+                self.source_directories.append(source_dir)
+
+            # file service
+            user_answer = ask_user(f"Does {app_name} contain a file service?", "yN")
+            if user_answer == "y":
+                source_dir = os.path.join("/data", app_name, "data/files")
+                print(f"Adding {source_dir} to source_directories")
+                self.source_directories.append(source_dir)
 
     def write_config(self) -> None:
         """Write the configuration"""
@@ -229,23 +243,47 @@ class ConfigGenerator:
             flags=re.MULTILINE,
         )
         config_content = re.sub(
-            r"^source_directories:\n(?:\s+.*\n)+?\n",
+            r"^source_directories:\n(?:^ +.+\n)+",
             "source_directories:\n"
-            "    - " + "\n    - ".join(dir for dir in self.source_directories) + "\n\n",
+            "    - " + "\n    - ".join(dir for dir in self.source_directories) + "\n",
             config_content,
             flags=re.MULTILINE,
         )
+        if self.before_hooks:
+            config_content = re.sub(
+                r"^#? ?before_backup:\n(?:^ +.+\n)+",
+                "before_backup:\n"
+                "    - " + "\n    - ".join(hook for hook in self.before_hooks) + "\n",
+                config_content,
+                flags=re.MULTILINE,
+            )
+        if self.append_only:
+            config_content = re.sub(
+                r"^#? ?skip_actions:\n(?:^ +.+\n)+",
+                "skip_actions:\n"
+                "    - compact\n"
+                "    - prune\n",
+                config_content,
+                flags=re.MULTILINE,
+            )
+            config_content = re.sub(
+                r"^#? ?keep_.+\n?",
+                "",
+                config_content,
+                flags=re.MULTILINE,
+            )
 
+        # We are done, remove comments to have a cleaner file
+        config_content = re.sub(
+            r"^ *#.*\n?",
+            "",
+            config_content,
+            flags=re.MULTILINE,
+        )
         print(config_content)
 
 
 def todo():
-    print(
-        "Does the app contain mu-search? => if yes, add data/elasticsearch to backup dirs"
-    )
-    print(
-        "Does the app contain a file service => if yes, add data/files to backup dirs"
-    )
 
     print("What's the crontab pattern for app backup ?")
 
