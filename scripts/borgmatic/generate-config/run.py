@@ -4,6 +4,7 @@
 
 import os
 import random
+import re
 import subprocess
 
 
@@ -11,6 +12,7 @@ def main() -> None:
     """Generate config based on user input"""
 
     config_generator = ConfigGenerator()
+    config_generator.write_config()
 
 
 class ConfigGenerator:
@@ -19,49 +21,47 @@ class ConfigGenerator:
     def __init__(self):
         print("Generating a Borgmatic configuration:")
         print("***")
-        self.local_hostname = self.get_local_hostname()
-        self.repo_name = self.get_repo_name()
-        self.append_only = self.is_append_only()
-        self.backup_server_host = self.get_backup_server_host()
-        self.backup_server_port = self.get_backup_server_port()
-        self.backup_server_user = self.get_backup_server_user()
-        self.backup_server_string = f"ssh://{self.backup_server_user}@{self.backup_server_host}:{self.backup_server_port}/./{self.local_hostname}-{self.repo_name}.borg"
-        self.passphrase = self.get_passphrase()
-        self.ssh_key_path = self.get_ssh_key_path()
+        self.work_dir = "/data/app"
+        self.get_hostname()
+        self.get_repo_name()
+        self.get_append_only()
+        self.get_backup_server_host()
+        self.get_backup_server_port()
+        self.get_backup_server_user()
+        self.get_backup_server_string()
+        self.get_passphrase()
+        self.get_ssh_key_path()
         self.authorize_ssh_key_on_backup_server()
-        self.app_names = self.get_app_names()
+        self.get_app_names()
 
-    def get_local_hostname(self) -> str:
-        """Try to find local hostname and ask the user to confirm"""
+    def get_hostname(self) -> None:
+        """Try to find the hostname and ask the user to confirm"""
 
         cmd = subprocess.run(["hostname"], capture_output=True, check=True)
-        local_hostname = cmd.stdout.decode().strip()
+        hostname = cmd.stdout.decode().strip()
 
-        local_hostname = ask_user("Hostname of the server to backup", local_hostname)
+        self.hostname = ask_user("Hostname of the server to backup", hostname)
 
-        return local_hostname
-
-    def get_repo_name(self) -> str:
+    def get_repo_name(self) -> None:
         """Ask what name the repo should be given"""
 
-        repo_name = ask_user("Name to be given to the repo", "main")
+        self.repo_name = ask_user("Name to be given to the repo", "main")
 
-        return repo_name
-
-    def is_append_only(self) -> bool:
+    def get_append_only(self) -> None:
         """Ask if we should configure append_only mode"""
 
         user_answer = ask_user("Should the repo be append-only?", "Yn")
         if user_answer == "n":
-            return False
-        return True
+            self.append_only = False
+        else:
+            self.append_only = True
 
-    def get_backup_server_host(self) -> str:
+    def get_backup_server_host(self) -> None:
         """Ask for the name of the backup server"""
 
-        return ask_user("Hostname of the backup server (can also be an IP address)", "")
+        self.backup_server_host = ask_user("Hostname of the backup server (can also be an IP address)", "")
 
-    def get_backup_server_port(self) -> str:
+    def get_backup_server_port(self) -> None:
         """Ask for the backup server's SSH port"""
 
         ok_port = False
@@ -75,14 +75,19 @@ class ConfigGenerator:
                 if 0 < int(port) < 65535:
                     ok_port = True
 
-        return port
+        self.backup_server_port = port
 
-    def get_backup_server_user(self) -> str:
+    def get_backup_server_user(self) -> None:
         """Ask for the backup server's connection user"""
 
-        return ask_user("Username for the backup server", "root")
+        self.backup_server_user = ask_user("Username for the backup server", "root")
 
-    def get_passphrase(self) -> str:
+    def get_backup_server_string(self) -> None:
+        """Build the string for connecting to the backup server"""
+
+        self.backup_server_string = f"ssh://{self.backup_server_user}@{self.backup_server_host}:{self.backup_server_port}/./{self.hostname}-{self.repo_name}.borg"
+
+    def get_passphrase(self) -> None:
         """Ask for a passphrase or generate one"""
 
         passphrase = ask_user("Passphrase for the repo (leave empty to generate)", "")
@@ -96,9 +101,9 @@ class ConfigGenerator:
             )
             passphrase = "".join(random.choices(population, k=64))
 
-        return passphrase
+        self.passphrase = passphrase
 
-    def get_ssh_key_path(self) -> str:
+    def get_ssh_key_path(self) -> None:
         """Ask for the path to an SSH key and generate if non existant"""
 
         ssh_key_path = ask_user(
@@ -112,9 +117,10 @@ class ConfigGenerator:
             subprocess.run(
                 ["ssh-keygen", "-f", ssh_key_path, "-N", ""],
                 check=True,
+                capture_output=True,
             )
 
-        return ssh_key_path
+        self.ssh_key_path = ssh_key_path
 
     def authorize_ssh_key_on_backup_server(self) -> None:
         """Add authorized_keys line to backup server with our SSH key and some options"""
@@ -155,7 +161,7 @@ class ConfigGenerator:
             check=True,
         )
 
-    def get_app_names(self) -> list:
+    def get_app_names(self) -> None:
         """Ask for a list of apps to backup"""
 
         app_names = ask_user(
@@ -165,7 +171,40 @@ class ConfigGenerator:
             "",
         )
 
-        return [app.strip() for app in app_names.split()]
+        self.app_names = [app.strip() for app in app_names.split()]
+
+    def write_config(self) -> None:
+        """Write the configuration"""
+
+        destination_file = os.path.join(
+            self.work_dir, "config/borgmatic.d", f"{self.repo_name}.yaml"
+        )
+        example_conf_file = os.path.join(self.work_dir, "config.example.yaml")
+        with open(example_conf_file, "r", encoding="utf-8") as example_config:
+            config_content = example_config.read()
+
+        config_content = re.sub(
+            r"^archive_name_format:.*",
+            f"archive_name_format: '{self.hostname}-{self.repo_name}-{{now}}'",
+            config_content,
+            flags=re.MULTILINE,
+        )
+        config_content = re.sub(
+            r"repositories:\n\s+- path: (.*)\n\s+  label: (.*)",
+            "repositories:\n"
+            f'    - path: "{self.backup_server_string}"\n'
+            f"      label: {self.repo_name}",
+            config_content,
+            flags=re.MULTILINE,
+        )
+        config_content = re.sub(
+            r"^encryption_passphrase:.*",
+            f'encryption_passphrase: "{self.passphrase}"',
+            config_content,
+            flags=re.MULTILINE,
+        )
+
+        print(config_content)
 
 
 def todo():
