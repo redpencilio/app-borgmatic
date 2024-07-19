@@ -280,7 +280,13 @@ class ConfigGenerator:
             config_content,
             flags=re.MULTILINE,
         )
-        print(config_content)
+
+        with open(destination_file, "w", encoding="utf-8") as dest_config:
+            dest_config.write(config_content)
+        os.chmod(destination_file, 0o600)
+
+        print(f"Created {destination_file.lstrip(self.work_dir)}.")
+        print("Please review it before starting containers.")
 
 
 def todo():
