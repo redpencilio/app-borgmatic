@@ -20,7 +20,6 @@ class ConfigGenerator:
 
     def __init__(self):
         print("Generating a Borgmatic configuration:")
-        print("***")
         self.work_dir = "/data/app"
         self.get_hostname()
         self.get_repo_name()
@@ -42,12 +41,12 @@ class ConfigGenerator:
         cmd = subprocess.run(["hostname"], capture_output=True, check=True)
         hostname = cmd.stdout.decode().strip()
 
-        self.hostname = ask_user("Hostname of the server to backup", hostname)
+        self.hostname = ask_user("Hostname of the server to backup:", hostname)
 
     def get_repo_name(self) -> None:
         """Ask what name the repo should be given"""
 
-        self.repo_name = ask_user("Name to be given to the repo", "main")
+        self.repo_name = ask_user("Name to be given to the repo:", "main")
 
     def get_append_only(self) -> None:
         """Ask if we should configure append_only mode"""
@@ -62,7 +61,7 @@ class ConfigGenerator:
         """Ask for the name of the backup server"""
 
         self.backup_server_host = ask_user(
-            "Hostname of the backup server (can also be an IP address)", ""
+            "Hostname of the backup server (can also be an IP address):", ""
         )
 
     def get_backup_server_port(self) -> None:
@@ -70,7 +69,7 @@ class ConfigGenerator:
 
         ok_port = False
         while not ok_port:
-            port = ask_user("SSH port of the backup server", "23")
+            port = ask_user("SSH port of the backup server:", "23")
             try:
                 int(port)
             except ValueError:
@@ -84,7 +83,7 @@ class ConfigGenerator:
     def get_backup_server_user(self) -> None:
         """Ask for the backup server's connection user"""
 
-        self.backup_server_user = ask_user("Username for the backup server", "root")
+        self.backup_server_user = ask_user("Username for the backup server:", "root")
 
     def get_backup_server_string(self) -> None:
         """Build the string for connecting to the backup server"""
@@ -94,7 +93,7 @@ class ConfigGenerator:
     def get_passphrase(self) -> None:
         """Ask for a passphrase or generate one"""
 
-        passphrase = ask_user("Passphrase for the repo (leave empty to generate)", "")
+        passphrase = ask_user("Passphrase for the repo (leave empty to generate):", "")
         if not passphrase:
             population = "".join(
                 (
@@ -111,13 +110,13 @@ class ConfigGenerator:
         """Ask for the path to an SSH key and generate if non existant"""
 
         ssh_key_path = ask_user(
-            "Path to SSH key for the backups", "~/.ssh/id_borgmatic"
+            "Path to SSH key for the backups:", "~/.ssh/id_borgmatic"
         )
         ssh_key_path = os.path.expanduser(ssh_key_path)
         ssh_key_path = ssh_key_path.rstrip(".pub")
 
         if not os.path.exists(ssh_key_path):
-            print(f"{ssh_key_path} was not found. Generating a key for you")
+            print(f"{ssh_key_path} was not found. Generating a key for you...")
             subprocess.run(
                 ["ssh-keygen", "-f", ssh_key_path, "-N", ""],
                 check=True,
@@ -169,9 +168,9 @@ class ConfigGenerator:
         """Ask for a list of apps to backup"""
 
         app_names = ask_user(
-            "Name(s) of app(s) to backup\n"
-            "  If multiple, separate them with whitespace "
-            '(e.g. "app-rollvolet-crm app-server-monitor")',
+            "Name(s) of app(s) to backup "
+            "(if multiple, separate them with whitespace, "
+            'e.g. "app-rollvolet-crm app-server-monitor"):',
             "",
         )
 
@@ -183,10 +182,9 @@ class ConfigGenerator:
             # triplestore
             user_answer = ask_user(f"Does {app_name} contain a triplestore?", "yN")
             if user_answer == "y":
-                source_dir = os.path.join("/data", app_name, "data/db")
-                print(f"Adding {source_dir} to source_directories")
-                self.source_directories.append(source_dir)
-                print("Adding virtuoso backup hook")
+                self.source_directories.append(
+                    os.path.join("/data", app_name, "data/db")
+                )
                 self.before_hooks.append(
                     "/data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps "
                     f'--filter "label=com.docker.compose.project={app_name}" '
@@ -197,16 +195,16 @@ class ConfigGenerator:
             # mu-search
             user_answer = ask_user(f"Does {app_name} contain mu-search?", "yN")
             if user_answer == "y":
-                source_dir = os.path.join("/data", app_name, "data/elasticsearch")
-                print(f"Adding {source_dir} to source_directories")
-                self.source_directories.append(source_dir)
+                self.source_directories.append(
+                    os.path.join("/data", app_name, "data/elasticsearch")
+                )
 
             # file service
             user_answer = ask_user(f"Does {app_name} contain a file service?", "yN")
             if user_answer == "y":
-                source_dir = os.path.join("/data", app_name, "data/files")
-                print(f"Adding {source_dir} to source_directories")
-                self.source_directories.append(source_dir)
+                self.source_directories.append(
+                    os.path.join("/data", app_name, "data/files")
+                )
 
     def get_retentions(self) -> None:
         """Ask for retention policies when not in append-only mode"""
@@ -277,7 +275,7 @@ class ConfigGenerator:
             dest_config.write(config_content)
         os.chmod(destination_file, 0o600)
 
-        print(f"Created {destination_file.lstrip(self.work_dir)}.")
+        print(f"Created configuration at {destination_file.lstrip(self.work_dir)}.")
         print("Please review it before starting containers.")
 
 
