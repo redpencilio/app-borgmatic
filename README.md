@@ -22,7 +22,13 @@ Each invocation of `borgmatic` will apply these files independently, in sequence
 
 ## How-to guides
 
-### Setup backups on a server
+### Setup backups on a server (using mu-script)
+
+A script using [mu-cli](https://github.com/mu-semtech/mu-cli) has been added to `./scripts/borgmatic/generate-config`.
+It is meant to ease the creation of a Borgmatic configuration with corresponding Docker mounts and optionally authorizing SSH key on the remote server.
+This automates most of the manual steps explained below (but make sure to run through them at least once).
+
+### Setup backups on a server (manual)
 
 1. Be root on the server
 
