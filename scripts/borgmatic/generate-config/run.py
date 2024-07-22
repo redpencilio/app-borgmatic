@@ -226,8 +226,8 @@ class ConfigGenerator:
 
         print("We are not using append-only, so we should setup a retention policy.")
         keep_within = ask_user(
-            "Time frame within which to keep all archives\n"
-            "(leave empty to specify daily/weekly/monthly/yearly retentions instead)",
+            "Time frame within which to keep all archives "
+            "(leave empty to specify daily/weekly/monthly/yearly retentions instead):",
             "",
         )
 
@@ -235,10 +235,10 @@ class ConfigGenerator:
         if keep_within:
             self.keep["within"] = keep_within
         else:
-            self.keep["daily"] = ask_user("Daily backups to keep", "7")
-            self.keep["weekly"] = ask_user("Weekly backups to keep", "4")
-            self.keep["monthly"] = ask_user("Monthly backups to keep", "6")
-            self.keep["yearly"] = ask_user("Yearly backups to keep", "1")
+            self.keep["daily"] = ask_user("Daily backups to keep:", "7")
+            self.keep["weekly"] = ask_user("Weekly backups to keep:", "4")
+            self.keep["monthly"] = ask_user("Monthly backups to keep:", "6")
+            self.keep["yearly"] = ask_user("Yearly backups to keep:", "1")
 
     def write_config(self) -> None:
         """Write the configuration"""
