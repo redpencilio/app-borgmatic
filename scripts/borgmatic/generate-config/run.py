@@ -21,21 +21,21 @@ class ConfigGenerator:
     def __init__(self):
         print("Generating a Borgmatic configuration:")
         self.work_dir = "/data/app"
-        self.get_hostname()
-        self.get_repo_name()
-        self.get_append_only()
-        self.get_backup_server_host()
-        self.get_backup_server_port()
-        self.get_backup_server_user()
-        self.get_backup_server_string()
-        self.get_passphrase()
-        self.get_ssh_key_path()
+        self.set_hostname()
+        self.set_repo_name()
+        self.set_append_only()
+        self.set_backup_server_host()
+        self.set_backup_server_port()
+        self.set_backup_server_user()
+        self.set_backup_server_string()
+        self.set_passphrase()
+        self.set_ssh_key_path()
         self.authorize_ssh_key_on_backup_server()
-        self.get_app_names()
+        self.set_app_names()
         if not self.append_only:
-            self.get_retentions()
+            self.set_retentions()
 
-    def get_hostname(self) -> None:
+    def set_hostname(self) -> None:
         """Try to find the hostname and ask the user to confirm"""
 
         cmd = subprocess.run(["hostname"], capture_output=True, check=True)
@@ -43,12 +43,12 @@ class ConfigGenerator:
 
         self.hostname = ask_user("Hostname of the server to backup:", hostname)
 
-    def get_repo_name(self) -> None:
+    def set_repo_name(self) -> None:
         """Ask what name the repo should be given"""
 
         self.repo_name = ask_user("Name to be given to the repo:", "main")
 
-    def get_append_only(self) -> None:
+    def set_append_only(self) -> None:
         """Ask if we should configure append_only mode"""
 
         user_answer = ask_user("Should the repo be append-only?", "Yn")
@@ -57,14 +57,14 @@ class ConfigGenerator:
         else:
             self.append_only = True
 
-    def get_backup_server_host(self) -> None:
+    def set_backup_server_host(self) -> None:
         """Ask for the name of the backup server"""
 
         self.backup_server_host = ask_user(
             "Hostname of the backup server (can also be an IP address):", ""
         )
 
-    def get_backup_server_port(self) -> None:
+    def set_backup_server_port(self) -> None:
         """Ask for the backup server's SSH port"""
 
         ok_port = False
@@ -80,17 +80,17 @@ class ConfigGenerator:
 
         self.backup_server_port = port
 
-    def get_backup_server_user(self) -> None:
+    def set_backup_server_user(self) -> None:
         """Ask for the backup server's connection user"""
 
         self.backup_server_user = ask_user("Username for the backup server:", "root")
 
-    def get_backup_server_string(self) -> None:
+    def set_backup_server_string(self) -> None:
         """Build the string for connecting to the backup server"""
 
         self.backup_server_string = f"ssh://{self.backup_server_user}@{self.backup_server_host}:{self.backup_server_port}/./{self.hostname}-{self.repo_name}.borg"
 
-    def get_passphrase(self) -> None:
+    def set_passphrase(self) -> None:
         """Ask for a passphrase or generate one"""
 
         passphrase = ask_user("Passphrase for the repo (leave empty to generate):", "")
@@ -106,7 +106,7 @@ class ConfigGenerator:
 
         self.passphrase = passphrase
 
-    def get_ssh_key_path(self) -> None:
+    def set_ssh_key_path(self) -> None:
         """Ask for the path to an SSH key and generate if non existant"""
 
         ssh_key_path = ask_user(
@@ -164,7 +164,7 @@ class ConfigGenerator:
             check=True,
         )
 
-    def get_app_names(self) -> None:
+    def set_app_names(self) -> None:
         """Ask for a list of apps to backup"""
 
         app_names = ask_user(
@@ -206,7 +206,7 @@ class ConfigGenerator:
                     os.path.join("/data", app_name, "data/files")
                 )
 
-    def get_retentions(self) -> None:
+    def set_retentions(self) -> None:
         """Ask for retention policies when not in append-only mode"""
 
         print("We are not using append-only, so we should setup a retention policy.")
