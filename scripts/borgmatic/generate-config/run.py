@@ -23,6 +23,7 @@ class ConfigGenerator:
     def __init__(self):
         print("Generating a Borgmatic configuration:")
         self.work_dir = "/data/app"
+        self.repo_dir = "."
         self.set_hostname()
         self.set_repo_name()
         self.set_append_only()
@@ -31,8 +32,8 @@ class ConfigGenerator:
         self.set_backup_server_user()
         self.set_backup_server_string()
         self.set_passphrase()
-        self.set_ssh_key_path()
-        self.authorize_ssh_key_on_backup_server()
+        if ask_user("Authorize SSH key on backup server?", "yN") == "y":
+            self.authorize_ssh_key_on_backup_server()
         self.set_source_directories()
         if not self.append_only:
             self.set_retentions()
@@ -108,33 +109,32 @@ class ConfigGenerator:
 
         self.passphrase = passphrase
 
-    def set_ssh_key_path(self) -> None:
-        """Ask for the path to an SSH key and generate if non existant"""
+    def _set_ssh_key_pub(self) -> None:
+        """Ask for the content of a public SSH key or generate one"""
 
-        ssh_key_path = ask_user(
-            "Path to SSH key for the backups:", "~/.ssh/id_borgmatic"
+        ssh_key_path = os.path.join(self.work_dir, "id_borgmatic")
+
+        self.ssh_key_pub = ask_user(
+            "Content of an existing public SSH key for the backups (leave empty to generate):", ""
         )
-        ssh_key_path = os.path.expanduser(ssh_key_path)
-        ssh_key_path = ssh_key_path.rstrip(".pub")
-
-        if not os.path.exists(ssh_key_path):
-            print(f"{ssh_key_path} was not found. Generating a key for you...")
-            subprocess.run(
-                ["ssh-keygen", "-f", ssh_key_path, "-N", ""],
-                check=True,
-                capture_output=True,
-            )
-
-        self.ssh_key_path = ssh_key_path
+        if not self.ssh_key_pub:
+            if not os.path.exists(ssh_key_path):
+                print(f"Generating new key at {self.repo_dir}/id_borgmatic...")
+                subprocess.run(
+                    ["ssh-keygen", "-f", ssh_key_path, "-N", ""],
+                    check=True,
+                    capture_output=True,
+                )
+            else:
+                print(f"Found existing key at {self.repo_dir}/id_borgmatic, using it.")
+            with open(f"{ssh_key_path}.pub", "r", encoding="utf-8") as ssh_key_file:
+                self.ssh_key_pub = ssh_key_file.read()
+        self.ssh_key_pub = self.ssh_key_pub.strip()
 
     def authorize_ssh_key_on_backup_server(self) -> None:
         """Add authorized_keys line to backup server with our SSH key and some options"""
 
-        return  # TODO: remove (this works, it's just not usefull for testing)
-
-        ssh_key_path = self.ssh_key_path
-        if not ssh_key_path.endswith(".pub"):
-            ssh_key_path += ".pub"
+        self._set_ssh_key_pub()
 
         if self.append_only:
             restrict_line = (
@@ -143,15 +143,17 @@ class ConfigGenerator:
         else:
             restrict_line = 'command="borg serve --umask=077 --info",restrict'
 
-        sftp_script = f"""
+        sftp_script = inspect.cleandoc(
+            f"""
             mkdir .ssh
             touch -ac .ssh/authorized_keys
             get .ssh/authorized_keys /tmp/authorized_keys
-            !grep -q "$(cat {ssh_key_path})" /tmp/authorized_keys || echo '{restrict_line}' $(cat {ssh_key_path}) >> /tmp/authorized_keys
+            !grep -q "{self.ssh_key_pub}" /tmp/authorized_keys || echo '{restrict_line}' {self.ssh_key_pub} >> /tmp/authorized_keys
             put /tmp/authorized_keys .ssh/authorized_keys
             !rm /tmp/authorized_keys
             bye
-        """
+            """
+        )
 
         subprocess.run(
             [
@@ -164,6 +166,7 @@ class ConfigGenerator:
             ],
             input=sftp_script.encode(),
             check=True,
+            capture_output=True,
         )
 
     def set_source_directories(self) -> None:
@@ -256,7 +259,7 @@ class ConfigGenerator:
                 - path: "{self.backup_server_string}"
                   label: {self.repo_name}
             encryption_passphrase: "{self.passphrase}"
-            ssh_command: ssh -i {self.ssh_key_path}
+            ssh_command: ssh -i /root/.ssh/id_borgmatic
             """
         )
 
@@ -349,7 +352,8 @@ class ConfigGenerator:
             A configuration file and docker-compose.override.yml were written.
             You might want to:
               - Review the configuration files
-              - Check that the SSH key exists ({self.ssh_key_path})
+              - Check that the SSH key exists (by default at /root/.ssh/id_borgmatic).
+                If the script generated one, make sure to move it (from {self.repo_dir}/id_borgmatic).
               - Check the BORGMATIC_CONFIG variable lists all borgmatic configuration files:
                 `docker compose config | grep BORGMATIC_CONFIG`
               - Verify the cron patterns for borgmatic and borgmatic-exporter:
