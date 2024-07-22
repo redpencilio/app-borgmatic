@@ -362,6 +362,9 @@ class ConfigGenerator:
             If everything is OK, you can start the containers and initialize the repository:
               `docker compose up -d`
               `docker compose exec borgmatic borgmatic init -e repokey [--append-only]`
+
+            As a precaution you might want to export the encryption key:
+              `docker compose exec borgmatic borgmatic key export`
             """
         ))
 
