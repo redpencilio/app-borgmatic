@@ -2,9 +2,9 @@
 
 """Generate a sample borgmatic configuration based on user's answers."""
 
+import inspect
 import os
 import random
-import re
 import subprocess
 
 
@@ -212,74 +212,37 @@ class ConfigGenerator:
         destination_file = os.path.join(
             self.work_dir, "config/borgmatic.d", f"{self.repo_name}.yaml"
         )
-        example_conf_file = os.path.join(self.work_dir, "config.example.yaml")
-        with open(example_conf_file, "r", encoding="utf-8") as example_config:
-            config_content = example_config.read()
 
-        config_content = re.sub(
-            r"^archive_name_format:.*",
-            f"archive_name_format: '{self.hostname}-{self.repo_name}-{{now}}'",
-            config_content,
-            flags=re.MULTILINE,
-        )
-        config_content = re.sub(
-            r"^repositories:\n\s+- path: .*\n\s+  label: .*",
-            "repositories:\n"
-            f'    - path: "{self.backup_server_string}"\n'
-            f"      label: {self.repo_name}",
-            config_content,
-            flags=re.MULTILINE,
-        )
-        config_content = re.sub(
-            r"^encryption_passphrase:.*",
-            f'encryption_passphrase: "{self.passphrase}"',
-            config_content,
-            flags=re.MULTILINE,
-        )
-        config_content = re.sub(
-            r"^ssh_command:.*",
-            f"ssh_command: ssh -i {self.ssh_key_path}",
-            config_content,
-            flags=re.MULTILINE,
-        )
-        config_content = re.sub(
-            r"^source_directories:\n(?:^ +.+\n)+",
+        config_content = inspect.cleandoc(f"""
+            # Generated with `generate-config` script
+
+            archive_name_format: '{self.hostname}-{self.repo_name}-{{now}}'
+            repositories:
+                - path: "{self.backup_server_string}"
+                  label: {self.repo_name}
+            encryption_passphrase: "{self.passphrase}"
+            ssh_command: ssh -i {self.ssh_key_path}
+        """)
+
+        config_content += (
+            "\n"
             "source_directories:\n"
-            "    - " + "\n    - ".join(dir for dir in self.source_directories) + "\n",
-            config_content,
-            flags=re.MULTILINE,
+            "    - " + "\n    - ".join(dir for dir in self.source_directories)
         )
+
         if self.before_hooks:
-            config_content = re.sub(
-                r"^#? ?before_backup:\n(?:^ +.+\n)+",
+            config_content += (
+                "\n"
                 "before_backup:\n"
-                "    - " + "\n    - ".join(hook for hook in self.before_hooks) + "\n",
-                config_content,
-                flags=re.MULTILINE,
+                "    - " + "\n    - ".join(hook for hook in self.before_hooks)
             )
         if self.append_only:
-            config_content = re.sub(
-                r"^#? ?skip_actions:\n(?:^ +.+\n)+",
+            config_content += (
+                "\n"
                 "skip_actions:\n"
-                "    - compact\n"
-                "    - prune\n",
-                config_content,
-                flags=re.MULTILINE,
+                "   - compact\n"
+                "   - prune\n"
             )
-            config_content = re.sub(
-                r"^#? ?keep_.+\n?",
-                "",
-                config_content,
-                flags=re.MULTILINE,
-            )
-
-        # We are done, remove comments to have a cleaner file
-        config_content = re.sub(
-            r"^ *#.*\n?",
-            "",
-            config_content,
-            flags=re.MULTILINE,
-        )
 
         with open(destination_file, "w", encoding="utf-8") as dest_config:
             dest_config.write(config_content)
