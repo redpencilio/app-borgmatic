@@ -33,6 +33,8 @@ class ConfigGenerator:
         self.get_ssh_key_path()
         self.authorize_ssh_key_on_backup_server()
         self.get_app_names()
+        if not self.append_only:
+            self.get_retentions()
 
     def get_hostname(self) -> None:
         """Try to find the hostname and ask the user to confirm"""
@@ -206,6 +208,25 @@ class ConfigGenerator:
                 print(f"Adding {source_dir} to source_directories")
                 self.source_directories.append(source_dir)
 
+    def get_retentions(self) -> None:
+        """Ask for retention policies when not in append-only mode"""
+
+        print("We are not using append-only, so we should setup a retention policy.")
+        keep_within = ask_user(
+            "Time frame within which to keep all archives\n"
+            "(leave empty to specify daily/weekly/monthly/yearly retentions instead)",
+            "",
+        )
+
+        self.keep = {}
+        if keep_within:
+            self.keep["within"] = keep_within
+        else:
+            self.keep["daily"] = ask_user("Daily backups to keep", "7")
+            self.keep["weekly"] = ask_user("Weekly backups to keep", "4")
+            self.keep["monthly"] = ask_user("Monthly backups to keep", "6")
+            self.keep["yearly"] = ask_user("Yearly backups to keep", "1")
+
     def write_config(self) -> None:
         """Write the configuration"""
 
@@ -213,7 +234,8 @@ class ConfigGenerator:
             self.work_dir, "config/borgmatic.d", f"{self.repo_name}.yaml"
         )
 
-        config_content = inspect.cleandoc(f"""
+        config_content = inspect.cleandoc(
+            f"""
             # Generated with `generate-config` script
 
             archive_name_format: '{self.hostname}-{self.repo_name}-{{now}}'
@@ -222,7 +244,8 @@ class ConfigGenerator:
                   label: {self.repo_name}
             encryption_passphrase: "{self.passphrase}"
             ssh_command: ssh -i {self.ssh_key_path}
-        """)
+            """
+        )
 
         config_content += (
             "\n"
@@ -240,10 +263,16 @@ class ConfigGenerator:
             config_content += (
                 "\n"
                 "skip_actions:\n"
-                "   - compact\n"
-                "   - prune\n"
+                "    - compact\n"
+                "    - prune\n"
+            )
+        else:
+            config_content += "\n" + "\n".join(
+                f"keep_{retention}: {policy}" for retention, policy in self.keep.items()
             )
 
+        if not config_content.endswith("\n"):
+            config_content += "\n"
         with open(destination_file, "w", encoding="utf-8") as dest_config:
             dest_config.write(config_content)
         os.chmod(destination_file, 0o600)
