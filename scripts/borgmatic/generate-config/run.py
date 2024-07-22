@@ -14,6 +14,7 @@ def main() -> None:
     config_generator = ConfigGenerator()
     config_generator.write_config()
     config_generator.write_docker_compose_override()
+    config_generator.print_remaining_tasks()
 
 
 class ConfigGenerator:
@@ -298,7 +299,6 @@ class ConfigGenerator:
         os.chmod(destination_file, 0o600)
 
         print(f"Created configuration at {destination_file.lstrip(self.work_dir)}.")
-        print("Please review it before starting containers.")
 
     def write_docker_compose_override(self) -> None:
         """Write the docker-compose.override.yml"""
@@ -340,16 +340,32 @@ class ConfigGenerator:
         with open(destination_file, "w", encoding="utf-8") as dest_file:
             dest_file.write(docker_compose_content)
 
+    def print_remaining_tasks(self) -> None:
+        """Some manual tasks are needed, print them here"""
 
-def todo():
+        print()
+        print(inspect.cleandoc(
+            f"""
+            A configuration file and docker-compose.override.yml were written.
+            You might want to:
+              - Review the configuration files
+              - Check that the SSH key exists ({self.ssh_key_path})
+              - Check the BORGMATIC_CONFIG variable lists all borgmatic configuration files:
+                `docker compose config | grep BORGMATIC_CONFIG`
+              - Verify the cron patterns for borgmatic and borgmatic-exporter:
+                `docker compose config | grep CRON`
 
-    print("What's the crontab pattern for app backup ?")
+            If everything is OK, you can start the containers and initialize the repository:
+              `docker compose up -d`
+              `docker compose exec borgmatic borgmatic init -e repokey [--append-only]`
+            """
+        ))
 
 
 def ask_user(question: str, default: str) -> str:
     """Ask for user input and return the answer"""
 
-    print(question)
+    print(f"\n{question}")
 
     if default:
         answer = input(f"[{default}] ")
