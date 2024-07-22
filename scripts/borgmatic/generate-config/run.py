@@ -321,6 +321,20 @@ class ConfigGenerator:
             "      - " + "\n      - ".join(mount for mount in self.docker_mounts)
         )
 
+        existing_configs = [
+            file for file in os.listdir(f"{self.work_dir}/config/borgmatic.d")
+            if file.endswith(".yaml") or file.endswith(".yml")
+        ]
+
+        docker_compose_content += (
+            "\n"
+            "  borgmatic-exporter:\n"
+            "    environment:\n"
+            '      BORGMATIC_CONFIG: "' + ":".join(
+                f"/etc/borgmatic.d/{config}" for config in existing_configs
+            ) + '"'
+        )
+
         if not docker_compose_content.endswith("\n"):
             docker_compose_content += "\n"
         with open(destination_file, "w", encoding="utf-8") as dest_file:
