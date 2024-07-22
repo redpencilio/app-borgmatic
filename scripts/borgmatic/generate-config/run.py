@@ -13,6 +13,7 @@ def main() -> None:
 
     config_generator = ConfigGenerator()
     config_generator.write_config()
+    config_generator.write_docker_compose_override()
 
 
 class ConfigGenerator:
@@ -31,7 +32,7 @@ class ConfigGenerator:
         self.set_passphrase()
         self.set_ssh_key_path()
         self.authorize_ssh_key_on_backup_server()
-        self.set_app_names()
+        self.set_source_directories()
         if not self.append_only:
             self.set_retentions()
 
@@ -164,8 +165,8 @@ class ConfigGenerator:
             check=True,
         )
 
-    def set_app_names(self) -> None:
-        """Ask for a list of apps to backup"""
+    def set_source_directories(self) -> None:
+        """Ask for a list of apps to backup and set source_directories accordingly"""
 
         app_names = ask_user(
             "Name(s) of app(s) to backup "
@@ -175,35 +176,48 @@ class ConfigGenerator:
         )
 
         self.app_names = [app.strip() for app in app_names.split()]
-        self.source_directories = []
-        self.before_hooks = []
+        self.source_directories = set()
+        self.before_hooks = set()
+        self.after_hooks = set()
+        self.docker_mounts = set()
 
         for app_name in self.app_names:
             # triplestore
             user_answer = ask_user(f"Does {app_name} contain a triplestore?", "yN")
             if user_answer == "y":
-                self.source_directories.append(
-                    os.path.join("/data", app_name, "data/db")
-                )
-                self.before_hooks.append(
+                self.source_directories.add(f"/data/{app_name}/data/db")
+                self.before_hooks.add(
                     "/data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps "
                     f'--filter "label=com.docker.compose.project={app_name}" '
                     '--filter "label=com.docker.compose.service=triplestore" '
                     '--format "{{.Names}}")'
                 )
+                self.after_hooks.add(
+                    f"find /data/{app_name}/data/db/backups -type f -delete"
+                )
+                self.docker_mounts.add("/data/useful-scripts:/data/useful-scripts:ro")
+                self.docker_mounts.add(
+                    f"/data/{app_name}/data/db:/data/{app_name}/data/db:ro"
+                )
+                # backups subdir not readonly for cleanup in after_backup hook
+                self.docker_mounts.add(
+                    f"/data/{app_name}/data/db/backups:/data/{app_name}/data/db/backups"
+                )
 
             # mu-search
             user_answer = ask_user(f"Does {app_name} contain mu-search?", "yN")
             if user_answer == "y":
-                self.source_directories.append(
-                    os.path.join("/data", app_name, "data/elasticsearch")
+                self.source_directories.add(f"/data/{app_name}/data/elasticsearch")
+                self.docker_mounts.add(
+                    f"/data/{app_name}/data/elasticsearch:/data/{app_name}/data/elasticsearch:ro"
                 )
 
             # file service
             user_answer = ask_user(f"Does {app_name} contain a file service?", "yN")
             if user_answer == "y":
-                self.source_directories.append(
-                    os.path.join("/data", app_name, "data/files")
+                self.source_directories.add(f"/data/{app_name}/data/files")
+                self.docker_mounts.add(
+                    f"/data/{app_name}/data/files:/data/{app_name}/data/files:ro"
                 )
 
     def set_retentions(self) -> None:
@@ -257,6 +271,14 @@ class ConfigGenerator:
                 "before_backup:\n"
                 "    - " + "\n    - ".join(hook for hook in self.before_hooks)
             )
+
+        if self.after_hooks:
+            config_content += (
+                "\n"
+                "after_backup:\n"
+                "    - " + "\n    - ".join(hook for hook in self.after_hooks)
+            )
+
         if self.append_only:
             config_content += (
                 "\n"
@@ -271,12 +293,38 @@ class ConfigGenerator:
 
         if not config_content.endswith("\n"):
             config_content += "\n"
-        with open(destination_file, "w", encoding="utf-8") as dest_config:
-            dest_config.write(config_content)
+        with open(destination_file, "w", encoding="utf-8") as dest_file:
+            dest_file.write(config_content)
         os.chmod(destination_file, 0o600)
 
         print(f"Created configuration at {destination_file.lstrip(self.work_dir)}.")
         print("Please review it before starting containers.")
+
+    def write_docker_compose_override(self) -> None:
+        """Write the docker-compose.override.yml"""
+
+        destination_file = os.path.join(self.work_dir, "docker-compose.override.yml")
+
+        docker_compose_content = inspect.cleandoc(
+            """
+            # Generated with `generate-config` script
+
+            version: '3'
+
+            services:
+              borgmatic:
+            """
+        )
+        docker_compose_content += (
+            "\n"
+            "    volumes:\n"
+            "      - " + "\n      - ".join(mount for mount in self.docker_mounts)
+        )
+
+        if not docker_compose_content.endswith("\n"):
+            docker_compose_content += "\n"
+        with open(destination_file, "w", encoding="utf-8") as dest_file:
+            dest_file.write(docker_compose_content)
 
 
 def todo():
