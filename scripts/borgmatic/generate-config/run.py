@@ -26,12 +26,12 @@ class ConfigGenerator:
         self.repo_dir = "."
         self.set_hostname()
         self.set_repo_name()
+        self.set_passphrase()
         self.set_append_only()
         self.set_backup_server_host()
         self.set_backup_server_port()
         self.set_backup_server_user()
         self.set_backup_server_string()
-        self.set_passphrase()
         if ask_user("Authorize SSH key on backup server?", "yN") == "y":
             self.authorize_ssh_key_on_backup_server()
         self.set_source_directories()
@@ -100,18 +100,15 @@ class ConfigGenerator:
     def set_passphrase(self) -> None:
         """Ask for a passphrase or generate one"""
 
-        passphrase = ask_user("Passphrase for the repo (leave empty to generate):", "")
-        if not passphrase:
-            population = "".join(
-                (
-                    "".join(str(i) for i in range(10)),
-                    "".join(chr(i) for i in range(ord("a"), ord("z") + 1)),
-                    "".join(chr(i) for i in range(ord("A"), ord("Z") + 1)),
-                )
+        print("\nGenerating passphrase for the repo...")
+        population = "".join(
+            (
+                "".join(str(i) for i in range(10)),
+                "".join(chr(i) for i in range(ord("a"), ord("z") + 1)),
+                "".join(chr(i) for i in range(ord("A"), ord("Z") + 1)),
             )
-            passphrase = "".join(random.choices(population, k=64))
-
-        self.passphrase = passphrase
+        )
+        self.passphrase = "".join(random.choices(population, k=64))
 
     def _set_ssh_key_pub(self) -> None:
         """Ask for the content of a public SSH key or generate one"""
