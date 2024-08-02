@@ -12,7 +12,8 @@ def main() -> None:
     """Generate config based on user input"""
 
     config_generator = ConfigGenerator()
-    config_generator.write_config()
+    for app_name in config_generator.apps:
+        config_generator.write_config(app_name)
     config_generator.write_docker_compose_override()
     config_generator.print_remaining_tasks()
 
@@ -24,16 +25,37 @@ class ConfigGenerator:
         print("Generating a Borgmatic configuration:")
         self.work_dir = "/data/app"
         self.repo_dir = "."
-        self.set_hostname()
-        self.set_repo_name()
-        self.set_passphrase()
         self.set_backup_server_host()
         self.set_backup_server_port()
         self.set_backup_server_user()
-        self.set_backup_server_string()
+        self.set_hostname()
         if ask_user("Authorize SSH key on backup server?", "yN") == "y":
             self.authorize_ssh_key_on_backup_server()
-        self.set_source_directories()
+
+        self.set_app_names()
+        self.set_backup_server_strings()
+        self.set_passphrases()
+        self.set_app_attributes()
+
+    def set_app_names(self) -> None:
+        """Ask for a list of apps to backup, a separate config will be made for each"""
+
+        app_names = ask_user(
+            "Name(s) of app(s) to backup "
+            "(if multiple, separate them with whitespace):",
+            "app-rollvolet-crm app-server-monitor",
+        )
+        self.apps = {
+            app_name.strip(): {
+                "passphrase": "",
+                "backup_server_string": "",
+                "source_directories": set(),
+                "before_hooks": set(),
+                "after_hooks": set(),
+                "docker_mounts": set(),
+            }
+            for app_name in app_names.split()
+        }
 
     def set_hostname(self) -> None:
         """Try to find the hostname and ask the user to confirm"""
@@ -42,11 +64,6 @@ class ConfigGenerator:
         hostname = cmd.stdout.decode().strip()
 
         self.hostname = ask_user("Hostname of the server to backup:", hostname)
-
-    def set_repo_name(self) -> None:
-        """Ask what name the repo should be given"""
-
-        self.repo_name = ask_user("Name to be given to the repo:", "main")
 
     def set_backup_server_host(self) -> None:
         """Ask for the name of the backup server"""
@@ -80,15 +97,15 @@ class ConfigGenerator:
             "u339567-sub1",
         )
 
-    def set_backup_server_string(self) -> None:
+    def set_backup_server_strings(self) -> None:
         """Build the string for connecting to the backup server"""
 
-        self.backup_server_string = f"ssh://{self.backup_server_user}@{self.backup_server_host}:{self.backup_server_port}/./{self.hostname}-{self.repo_name}.borg"
+        for app_name in self.apps:
+            self.apps[app_name]["backup_server_string"] = f"ssh://{self.backup_server_user}@{self.backup_server_host}:{self.backup_server_port}/./{self.hostname}-{app_name}.borg"
 
-    def set_passphrase(self) -> None:
+    def set_passphrases(self) -> None:
         """Ask for a passphrase or generate one"""
 
-        print("\nGenerating passphrase for the repo...")
         population = "".join(
             (
                 "".join(str(i) for i in range(10)),
@@ -96,7 +113,12 @@ class ConfigGenerator:
                 "".join(chr(i) for i in range(ord("A"), ord("Z") + 1)),
             )
         )
-        self.passphrase = "".join(random.choices(population, k=64))
+
+        for app_name in self.apps:
+            print(f"\nGenerating passphrase for {app_name}...")
+            self.apps[app_name]["passphrase"] = "".join(
+                random.choices(population, k=64)
+            )
 
     def _set_ssh_key_pub(self) -> None:
         """Ask for the content of a public SSH key or generate one"""
@@ -153,88 +175,88 @@ class ConfigGenerator:
             capture_output=True,
         )
 
-    def set_source_directories(self) -> None:
-        """Ask for a list of apps to backup and set source_directories accordingly"""
+    def set_app_attributes(self) -> None:
+        """For each app_name set attributes for the app"""
 
-        app_names = ask_user(
-            "Name(s) of app(s) to backup "
-            "(if multiple, separate them with whitespace):",
-            "app-rollvolet-crm app-server-monitor",
-        )
-
-        self.app_names = [app.strip() for app in app_names.split()]
-        self.source_directories = set()
-        self.before_hooks = set()
-        self.after_hooks = set()
-        self.docker_mounts = set()
-
-        for app_name in self.app_names:
+        for app_name in self.apps:
             # app's docker-compose files
-            self.source_directories.add(f"/data/{app_name}/docker-compose*.yml")
-            self.docker_mounts.add(f"/data/{app_name}:/data/{app_name}:ro")
+            self.apps[app_name]["source_directories"].add(
+                f"/data/{app_name}/docker-compose*.yml"
+            )
+            self.apps[app_name]["docker_mounts"].add(
+                f"/data/{app_name}:/data/{app_name}:ro"
+            )
 
             # app's config directory
-            self.source_directories.add(f"/data/{app_name}/config")
-            self.docker_mounts.add(
+            self.apps[app_name]["source_directories"].add(f"/data/{app_name}/config")
+            self.apps[app_name]["docker_mounts"].add(
                 f"/data/{app_name}/config:/data/{app_name}/config:ro"
             )
 
             # triplestore
             user_answer = ask_user(f"Does {app_name} contain a triplestore?", "Yn")
             if user_answer.lower() in ("yn", "y", "yes", "1"):
-                self.source_directories.add(f"/data/{app_name}/data/db")
-                self.before_hooks.add(
+                self.apps[app_name]["source_directories"].add(
+                    f"/data/{app_name}/data/db"
+                )
+                self.apps[app_name]["before_hooks"].add(
                     "/data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps "
                     f'--filter "label=com.docker.compose.project={app_name}" '
                     '--filter "label=com.docker.compose.service=triplestore" '
                     '--format "{{.Names}}")'
                 )
-                self.after_hooks.add(
+                self.apps[app_name]["after_hooks"].add(
                     f"find /data/{app_name}/data/db/backups -type f -delete"
                 )
-                self.docker_mounts.add("/data/useful-scripts:/data/useful-scripts:ro")
-                self.docker_mounts.add(
+                self.apps[app_name]["docker_mounts"].add(
+                    "/data/useful-scripts:/data/useful-scripts:ro"
+                )
+                self.apps[app_name]["docker_mounts"].add(
                     f"/data/{app_name}/data/db:/data/{app_name}/data/db:ro"
                 )
                 # backups subdir not readonly for cleanup in after_backup hook
-                self.docker_mounts.add(
+                self.apps[app_name]["docker_mounts"].add(
                     f"/data/{app_name}/data/db/backups:/data/{app_name}/data/db/backups"
                 )
 
             # mu-search
             user_answer = ask_user(f"Does {app_name} contain mu-search?", "yN")
             if user_answer == "y":
-                self.source_directories.add(f"/data/{app_name}/data/elasticsearch")
-                self.docker_mounts.add(
+                self.apps[app_name]["source_directories"].add(
+                    f"/data/{app_name}/data/elasticsearch"
+                )
+                self.apps[app_name]["docker_mounts"].add(
                     f"/data/{app_name}/data/elasticsearch:/data/{app_name}/data/elasticsearch:ro"
                 )
 
             # file service
             user_answer = ask_user(f"Does {app_name} contain a file service?", "yN")
             if user_answer == "y":
-                self.source_directories.add(f"/data/{app_name}/data/files")
-                self.docker_mounts.add(
+                self.apps[app_name]["source_directories"].add(
+                    f"/data/{app_name}/data/files"
+                )
+                self.apps[app_name]["docker_mounts"].add(
                     f"/data/{app_name}/data/files:/data/{app_name}/data/files:ro"
                 )
 
-    def write_config(self) -> None:
+    def write_config(self, app_name: str) -> None:
         """Write the configuration"""
 
         destination_file = os.path.join(
-            self.work_dir, "config/borgmatic.d", f"{self.repo_name}.yml"
+            self.work_dir, "config/borgmatic.d", f"{app_name}.yml"
         )
 
         config_content = inspect.cleandoc(
             f"""
             # Generated with `generate-config` script
 
-            archive_name_format: '{self.hostname}-{self.repo_name}-{{now}}'
+            archive_name_format: '{self.hostname}-{app_name}-{{now}}'
 
             repositories:
-                - path: "{self.backup_server_string}"
-                  label: {self.repo_name}
+                - path: "{self.apps[app_name]['backup_server_string']}"
+                  label: {app_name}
 
-            encryption_passphrase: "{self.passphrase}"
+            encryption_passphrase: "{self.apps[app_name]['passphrase']}"
 
             ssh_command: ssh -i /root/.ssh/id_borgmatic
             """
@@ -243,21 +265,27 @@ class ConfigGenerator:
         config_content += (
             "\n\n"
             "source_directories:\n"
-            "    - " + "\n    - ".join(dir for dir in sorted(self.source_directories))
+            "    - " + "\n    - ".join(
+                dir for dir in sorted(self.apps[app_name]["source_directories"])
+            )
         )
 
-        if self.before_hooks:
+        if self.apps[app_name]["before_hooks"]:
             config_content += (
                 "\n\n"
                 "before_backup:\n"
-                "    - " + "\n    - ".join(hook for hook in self.before_hooks)
+                "    - " + "\n    - ".join(
+                    hook for hook in self.apps[app_name]["before_hooks"]
+                )
             )
 
-        if self.after_hooks:
+        if self.apps[app_name]["after_hooks"]:
             config_content += (
                 "\n\n"
                 "after_backup:\n"
-                "    - " + "\n    - ".join(hook for hook in self.after_hooks)
+                "    - " + "\n    - ".join(
+                    hook for hook in self.apps[app_name]["after_hooks"]
+                )
             )
 
         config_content += (
@@ -290,10 +318,17 @@ class ConfigGenerator:
               borgmatic:
             """
         )
+
+        docker_mounts = set()
+        for app_name in self.apps:
+            docker_mounts = docker_mounts.union(self.apps[app_name]["docker_mounts"])
+
         docker_compose_content += (
             "\n"
             "    volumes:\n"
-            "      - " + "\n      - ".join(mount for mount in sorted(self.docker_mounts))
+            "      - " + "\n      - ".join(
+                mount for mount in sorted(docker_mounts)
+            )
         )
 
         existing_configs = [
