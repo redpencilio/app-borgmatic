@@ -27,7 +27,6 @@ class ConfigGenerator:
         self.set_hostname()
         self.set_repo_name()
         self.set_passphrase()
-        self.set_append_only()
         self.set_backup_server_host()
         self.set_backup_server_port()
         self.set_backup_server_user()
@@ -35,8 +34,6 @@ class ConfigGenerator:
         if ask_user("Authorize SSH key on backup server?", "yN") == "y":
             self.authorize_ssh_key_on_backup_server()
         self.set_source_directories()
-        if not self.append_only:
-            self.set_retentions()
 
     def set_hostname(self) -> None:
         """Try to find the hostname and ask the user to confirm"""
@@ -50,15 +47,6 @@ class ConfigGenerator:
         """Ask what name the repo should be given"""
 
         self.repo_name = ask_user("Name to be given to the repo:", "main")
-
-    def set_append_only(self) -> None:
-        """Ask if we should configure append_only mode"""
-
-        user_answer = ask_user("Should the repo be append-only?", "Yn")
-        if user_answer == "n":
-            self.append_only = False
-        else:
-            self.append_only = True
 
     def set_backup_server_host(self) -> None:
         """Ask for the name of the backup server"""
@@ -137,12 +125,7 @@ class ConfigGenerator:
 
         self._set_ssh_key_pub()
 
-        if self.append_only:
-            restrict_line = (
-                'command="borg serve --umask=077 --info --append_only",restrict'
-            )
-        else:
-            restrict_line = 'command="borg serve --umask=077 --info",restrict'
+        restrict_line = 'command="borg serve --umask=077 --info --append_only",restrict'
 
         sftp_script = inspect.cleandoc(
             f"""
@@ -224,25 +207,6 @@ class ConfigGenerator:
                     f"/data/{app_name}/data/files:/data/{app_name}/data/files:ro"
                 )
 
-    def set_retentions(self) -> None:
-        """Ask for retention policies when not in append-only mode"""
-
-        print("We are not using append-only, so we should setup a retention policy.")
-        keep_within = ask_user(
-            "Time frame within which to keep all archives "
-            "(leave empty to specify daily/weekly/monthly/yearly retentions instead):",
-            "",
-        )
-
-        self.keep = {}
-        if keep_within:
-            self.keep["within"] = keep_within
-        else:
-            self.keep["daily"] = ask_user("Daily backups to keep:", "7")
-            self.keep["weekly"] = ask_user("Weekly backups to keep:", "4")
-            self.keep["monthly"] = ask_user("Monthly backups to keep:", "6")
-            self.keep["yearly"] = ask_user("Yearly backups to keep:", "1")
-
     def write_config(self) -> None:
         """Write the configuration"""
 
@@ -283,17 +247,12 @@ class ConfigGenerator:
                 "    - " + "\n    - ".join(hook for hook in self.after_hooks)
             )
 
-        if self.append_only:
-            config_content += (
-                "\n"
-                "skip_actions:\n"
-                "    - compact\n"
-                "    - prune\n"
-            )
-        else:
-            config_content += "\n" + "\n".join(
-                f"keep_{retention}: {policy}" for retention, policy in self.keep.items()
-            )
+        config_content += (
+            "\n"
+            "skip_actions:\n"
+            "    - compact\n"
+            "    - prune\n"
+        )
 
         if not config_content.endswith("\n"):
             config_content += "\n"
@@ -358,10 +317,12 @@ class ConfigGenerator:
                 `docker compose config | grep BORGMATIC_CONFIG`
               - Verify the cron patterns for borgmatic and borgmatic-exporter:
                 `docker compose config | grep CRON`
+              - This script sets the repo in append-only mode. If you don't want that, you'll need to
+                make the relevant changes yourself.
 
             If everything is OK, you can start the containers and initialize the repository:
               `docker compose up -d`
-              `docker compose exec borgmatic borgmatic init -e repokey [--append-only]`
+              `docker compose exec borgmatic borgmatic init -e repokey --append-only`
 
             As a precaution you might want to export the encryption key:
               `docker compose exec borgmatic borgmatic key export`
