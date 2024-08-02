@@ -219,36 +219,39 @@ class ConfigGenerator:
             # Generated with `generate-config` script
 
             archive_name_format: '{self.hostname}-{self.repo_name}-{{now}}'
+
             repositories:
                 - path: "{self.backup_server_string}"
                   label: {self.repo_name}
+
             encryption_passphrase: "{self.passphrase}"
+
             ssh_command: ssh -i /root/.ssh/id_borgmatic
             """
         )
 
         config_content += (
-            "\n"
+            "\n\n"
             "source_directories:\n"
             "    - " + "\n    - ".join(dir for dir in self.source_directories)
         )
 
         if self.before_hooks:
             config_content += (
-                "\n"
+                "\n\n"
                 "before_backup:\n"
                 "    - " + "\n    - ".join(hook for hook in self.before_hooks)
             )
 
         if self.after_hooks:
             config_content += (
-                "\n"
+                "\n\n"
                 "after_backup:\n"
                 "    - " + "\n    - ".join(hook for hook in self.after_hooks)
             )
 
         config_content += (
-            "\n"
+            "\n\n"
             "skip_actions:\n"
             "    - compact\n"
             "    - prune\n"
