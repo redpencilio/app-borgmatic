@@ -167,7 +167,7 @@ class ConfigGenerator:
             """
         )
 
-        subprocess.run(
+        cmd = subprocess.run(
             [
                 "sftp",
                 "-P",
@@ -177,9 +177,12 @@ class ConfigGenerator:
                 f"{self.backup_server_user}@{self.backup_server_host}",
             ],
             input=sftp_script.encode(),
-            check=True,
+            check=False,
             capture_output=True,
         )
+
+        if cmd.returncode != 0:
+            print(f"\nWARNING: Authorizing key on {self.backup_server_host} failed.")
 
     def set_app_attributes(self) -> None:
         """For each app_name set attributes for the app"""
@@ -367,6 +370,7 @@ class ConfigGenerator:
               - Review the configuration files
               - Check that the SSH key exists (by default at /root/.ssh/id_borgmatic).
                 If the script generated one, make sure to move it (from {self.repo_dir}/id_borgmatic).
+              - Make sure the key was correctly authorized on the backup server, or do it manually.
               - Check the BORGMATIC_CONFIG variable lists all borgmatic configuration files:
                 `docker compose config | grep BORGMATIC_CONFIG`
               - Verify the cron patterns for borgmatic and borgmatic-exporter:
