@@ -170,8 +170,8 @@ class ConfigGenerator:
 
         for app_name in self.app_names:
             # triplestore
-            user_answer = ask_user(f"Does {app_name} contain a triplestore?", "yN")
-            if user_answer == "y":
+            user_answer = ask_user(f"Does {app_name} contain a triplestore?", "Yn")
+            if user_answer.lower() in ("yn", "y", "yes", "1"):
                 self.source_directories.add(f"/data/{app_name}/data/db")
                 self.before_hooks.add(
                     "/data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps "
