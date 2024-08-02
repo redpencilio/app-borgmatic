@@ -125,22 +125,28 @@ class ConfigGenerator:
 
         ssh_key_path = os.path.join(self.work_dir, "id_borgmatic")
 
-        self.ssh_key_pub = ask_user(
-            "Content of an existing public SSH key for the backups (leave empty to generate):", ""
-        )
-        if not self.ssh_key_pub:
-            if not os.path.exists(ssh_key_path):
-                print(f"Generating new key at {self.repo_dir}/id_borgmatic...")
-                subprocess.run(
-                    ["ssh-keygen", "-f", ssh_key_path, "-N", ""],
-                    check=True,
-                    capture_output=True,
-                )
-            else:
-                print(f"Found existing key at {self.repo_dir}/id_borgmatic, using it.")
-            with open(f"{ssh_key_path}.pub", "r", encoding="utf-8") as ssh_key_file:
-                self.ssh_key_pub = ssh_key_file.read()
-        self.ssh_key_pub = self.ssh_key_pub.strip()
+        generate_key = True
+        if os.path.exists(ssh_key_path):
+            generate_key = False
+            if ask_user(
+                f"Found existing key at {self.repo_dir}/id_borgmatic. "
+                "Do you want to use it?",
+                "Yn",
+            ) == "n":
+                generate_key = True
+                os.remove(ssh_key_path)
+                os.remove(f"{ssh_key_path}.pub")
+
+        if generate_key:
+            print(f"Generating new key at {self.repo_dir}/id_borgmatic...")
+            subprocess.run(
+                ["ssh-keygen", "-f", ssh_key_path, "-N", ""],
+                check=True,
+                capture_output=True,
+            )
+
+        with open(f"{ssh_key_path}.pub", "r", encoding="utf-8") as ssh_key_file:
+            self.ssh_key_pub = ssh_key_file.read().strip()
 
     def authorize_ssh_key_on_backup_server(self) -> None:
         """Add authorized_keys line to backup server with our SSH key and some options"""
