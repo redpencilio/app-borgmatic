@@ -11,4 +11,4 @@ services:
     environment:
       # The exporter needs the exact names of config file(s)
       # Separate with a column (:) if multiple
-      BORGMATIC_CONFIG: "/etc/borgmatic.d/main.yaml:/etc/borgmatic.d/other.yaml"
+      BORGMATIC_CONFIG: "/etc/borgmatic.d/main.yml:/etc/borgmatic.d/other.yml"

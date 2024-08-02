@@ -28,6 +28,6 @@ services:
       - ./data/borgmatic-exporter/metrics:/data/metrics
     environment:
       BORGMATIC_EXPORTER_PORT: 9996
-      BORGMATIC_CONFIG: /etc/borgmatic.d/config.yaml
+      BORGMATIC_CONFIG: /etc/borgmatic.d/config.yml
       BACKUP_CRON: 12 * * * *
       CRON_COMMAND: /usr/bin/curl -s http://localhost:9996/metrics > /data/metrics/borgmatic.prom

@@ -247,7 +247,7 @@ class ConfigGenerator:
         """Write the configuration"""
 
         destination_file = os.path.join(
-            self.work_dir, "config/borgmatic.d", f"{self.repo_name}.yaml"
+            self.work_dir, "config/borgmatic.d", f"{self.repo_name}.yml"
         )
 
         config_content = inspect.cleandoc(

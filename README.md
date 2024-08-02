@@ -17,7 +17,7 @@ This directory is bind-mounted to `./config/borgmatic.d/`, so that the configura
 It is possible to use multiple configuration files with different configuration values, to backup different parts of the server with a different backup policy.
 This is for example useful to apply different retentions for logs and backup dumps.
 
-To use this, just add several `.yaml` files inside `./config/borgmatic.d/`.
+To use this, just add several `.yml` files inside `./config/borgmatic.d/`.
 Each invocation of `borgmatic` will apply these files independently, in sequence.
 
 ## How-to guides
@@ -60,21 +60,21 @@ EOF
 command="borg serve --umask=077 --info --append-only --restrict-to-repository /home/something.borg/ --restrict-to-repository /home/something-else.borg/",restrict ssh-rsa ...
 ```
 
-5. Create `./config/borgmatic.d/*.yaml` file(s) from the provided example:
+5. Create `./config/borgmatic.d/*.yml` file(s) from the provided example:
 ```sh
-cp config.example.yaml config/borgmatic.d/config.yaml
+cp config.example.yml config/borgmatic.d/config.yml
 ```
    Or if using multiple configuration files:
 ```sh
-cp config.example.yaml config/borgmatic.d/main.yaml
-cp config.example.yaml config/borgmatic.d/something.yaml
+cp config.example.yml config/borgmatic.d/main.yml
+cp config.example.yml config/borgmatic.d/something.yml
 ```
 
 6. Modify it/them...
 
 7. **MAKE SURE TO `chmod` THE RESULTING FILE(S)**, it/they will contain the passphrase:
 ```sh
-for f in config/borgmatic.d/*.yaml; do
+for f in config/borgmatic.d/*.yml; do
     chown root: "$f"; chmod 600 "$f"
 done
 ```
