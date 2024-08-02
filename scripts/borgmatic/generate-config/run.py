@@ -64,7 +64,8 @@ class ConfigGenerator:
         """Ask for the name of the backup server"""
 
         self.backup_server_host = ask_user(
-            "Hostname of the backup server (can also be an IP address):", ""
+            "Hostname of the backup server (can also be an IP address):",
+            "u339567.your-storagebox.de",
         )
 
     def set_backup_server_port(self) -> None:
@@ -86,7 +87,10 @@ class ConfigGenerator:
     def set_backup_server_user(self) -> None:
         """Ask for the backup server's connection user"""
 
-        self.backup_server_user = ask_user("Username for the backup server:", "root")
+        self.backup_server_user = ask_user(
+            "Username for the backup server:",
+            "u339567-sub1",
+        )
 
     def set_backup_server_string(self) -> None:
         """Build the string for connecting to the backup server"""
@@ -174,9 +178,8 @@ class ConfigGenerator:
 
         app_names = ask_user(
             "Name(s) of app(s) to backup "
-            "(if multiple, separate them with whitespace, "
-            'e.g. "app-rollvolet-crm app-server-monitor"):',
-            "",
+            "(if multiple, separate them with whitespace):",
+            "app-rollvolet-crm app-server-monitor",
         )
 
         self.app_names = [app.strip() for app in app_names.split()]
