@@ -169,6 +169,16 @@ class ConfigGenerator:
         self.docker_mounts = set()
 
         for app_name in self.app_names:
+            # app's docker-compose files
+            self.source_directories.add(f"/data/{app_name}/docker-compose*.yml")
+            self.docker_mounts.add(f"/data/{app_name}:/data/{app_name}:ro")
+
+            # app's config directory
+            self.source_directories.add(f"/data/{app_name}/config")
+            self.docker_mounts.add(
+                f"/data/{app_name}/config:/data/{app_name}/config:ro"
+            )
+
             # triplestore
             user_answer = ask_user(f"Does {app_name} contain a triplestore?", "Yn")
             if user_answer.lower() in ("yn", "y", "yes", "1"):
@@ -233,7 +243,7 @@ class ConfigGenerator:
         config_content += (
             "\n\n"
             "source_directories:\n"
-            "    - " + "\n    - ".join(dir for dir in self.source_directories)
+            "    - " + "\n    - ".join(dir for dir in sorted(self.source_directories))
         )
 
         if self.before_hooks:
@@ -283,7 +293,7 @@ class ConfigGenerator:
         docker_compose_content += (
             "\n"
             "    volumes:\n"
-            "      - " + "\n      - ".join(mount for mount in self.docker_mounts)
+            "      - " + "\n      - ".join(mount for mount in sorted(self.docker_mounts))
         )
 
         existing_configs = [
