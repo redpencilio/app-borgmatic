@@ -317,6 +317,9 @@ class ConfigGenerator:
 
         destination_file = os.path.join(self.work_dir, "docker-compose.override.yml")
 
+        with open(destination_file, "r", encoding="utf-8") as docker_compose_file:
+            cur_docker_compose_content = docker_compose_file.read()
+
         docker_compose_content = inspect.cleandoc(
             """
             # Generated with `generate-config` script
@@ -325,17 +328,18 @@ class ConfigGenerator:
 
             services:
               borgmatic:
+                volumes:
             """
         )
 
-        docker_mounts = set()
+        docker_mounts = get_docker_compose_volumes(
+            cur_docker_compose_content, "borgmatic"
+        )
         for app_name in self.apps:
             docker_mounts = docker_mounts.union(self.apps[app_name]["docker_mounts"])
 
         docker_compose_content += (
-            "\n"
-            "    volumes:\n"
-            "      - " + "\n      - ".join(
+            "\n      - " + "\n      - ".join(
                 mount for mount in sorted(docker_mounts)
             )
         )
@@ -402,6 +406,31 @@ def ask_user(question: str, default: str) -> str:
         answer = default
 
     return answer
+
+
+def get_docker_compose_volumes(docker_compose_content: str, service: str) -> set[str]:
+    """Parse the content of a docker-compose file and return the defined volumes"""
+
+    volumes = set()
+    content_lines = [
+        line.strip() for line in docker_compose_content.split("\n")
+        if not line.strip().startswith("#")
+    ]
+    if f"{service}:" not in content_lines:
+        return set()
+    start_at = content_lines.index(f"{service}:")
+    started_reading_volumes = False
+    for line in content_lines[start_at:]:
+        if line == "volumes:":
+            started_reading_volumes = True
+            continue
+        if started_reading_volumes:
+            if line.startswith("- "):
+                volumes.add(line.lstrip("- "))
+            else:
+                break
+
+    return volumes
 
 
 if __name__ == "__main__":
