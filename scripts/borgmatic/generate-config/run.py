@@ -222,6 +222,13 @@ class ConfigGenerator:
                     f"/data/{app_name}/data/db/backups:/data/{app_name}/data/db/backups"
                 )
 
+            # sparql-parser
+            user_answer = ask_user(f"Does {app_name} contain sparql-parser?", "Yn")
+            if user_answer.lower() in ("yn", "y", "yes", "1"):
+                self.apps[app_name]["source_directories"].add(
+                    f"/data/{app_name}/data/authorization"
+                )
+
             # mu-search
             user_answer = ask_user(f"Does {app_name} contain mu-search?", "yN")
             if user_answer == "y":
