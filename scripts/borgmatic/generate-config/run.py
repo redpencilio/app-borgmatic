@@ -198,9 +198,6 @@ class ConfigGenerator:
 
             # app's config directory
             self.apps[app_name]["source_directories"].add(f"/data/{app_name}/config")
-            self.apps[app_name]["docker_mounts"].add(
-                f"/data/{app_name}/config:/data/{app_name}/config:ro"
-            )
 
             # triplestore
             user_answer = ask_user(f"Does {app_name} contain a triplestore?", "Yn")
@@ -220,9 +217,6 @@ class ConfigGenerator:
                 self.apps[app_name]["docker_mounts"].add(
                     "/data/useful-scripts:/data/useful-scripts:ro"
                 )
-                self.apps[app_name]["docker_mounts"].add(
-                    f"/data/{app_name}/data/db:/data/{app_name}/data/db:ro"
-                )
                 # backups subdir not readonly for cleanup in after_backup hook
                 self.apps[app_name]["docker_mounts"].add(
                     f"/data/{app_name}/data/db/backups:/data/{app_name}/data/db/backups"
@@ -234,18 +228,12 @@ class ConfigGenerator:
                 self.apps[app_name]["source_directories"].add(
                     f"/data/{app_name}/data/elasticsearch"
                 )
-                self.apps[app_name]["docker_mounts"].add(
-                    f"/data/{app_name}/data/elasticsearch:/data/{app_name}/data/elasticsearch:ro"
-                )
 
             # file service
             user_answer = ask_user(f"Does {app_name} contain a file service?", "yN")
             if user_answer == "y":
                 self.apps[app_name]["source_directories"].add(
                     f"/data/{app_name}/data/files"
-                )
-                self.apps[app_name]["docker_mounts"].add(
-                    f"/data/{app_name}/data/files:/data/{app_name}/data/files:ro"
                 )
 
     def write_config(self, app_name: str) -> None:
