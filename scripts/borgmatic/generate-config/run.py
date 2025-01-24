@@ -319,8 +319,6 @@ class ConfigGenerator:
             """
             # Generated with `generate-config` script
 
-            version: '3'
-
             services:
               borgmatic:
                 volumes:
