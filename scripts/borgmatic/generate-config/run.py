@@ -63,7 +63,7 @@ class ConfigGenerator:
         cmd = subprocess.run(["hostname"], capture_output=True, check=True)
         hostname = cmd.stdout.decode().strip()
 
-        self.hostname = ask_user("Hostname of the server to backup:", hostname)
+        self.hostname = ask_user("Hostname of the server to backup:", "abb-charlie")
 
     def set_backup_server_host(self) -> None:
         """Ask for the name of the backup server"""
