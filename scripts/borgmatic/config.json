@@ -1,20 +1,35 @@
 {
-    "version": "0.1",
-    "scripts": [
-        {
-            "documentation": {
-                "command": "generate-config",
-                "description": "Generates a configuration file for Borgmatic based on questions",
-                "arguments": []
-            },
-            "environment": {
-                "image": "python:3",
-                "interactive": true,
-                "script": "generate-config/run.py"
-            },
-            "mounts": {
-                "app": "/data/app/"
-            }
-        }
-    ]
+  "version": "0.1",
+  "scripts": [
+    {
+      "documentation": {
+        "command": "generate-config",
+        "description": "Generates a configuration file for Borgmatic based on questions",
+        "arguments": []
+      },
+      "environment": {
+        "image": "python:3",
+        "interactive": true,
+        "script": "generate-config/run.py"
+      },
+      "mounts": {
+        "app": "/data/app/"
+      }
+    },
+    {
+      "documentation": {
+        "command": "generate-app-backup",
+        "description": "Generates Borgmatic configuration to backup a semantic.works application.\nbackup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)\nserver-hostname: hostname of the server to backup (e.g. abb-croco)\napp-name: name of the app to backup (e.g. app-mandatendatabank)",
+        "arguments": ["backup-server-ssh-connection", "server-hostname", "app-name"]
+      },
+      "environment": {
+        "image": "madmuffin/pyyaml:3.8-alpine",
+        "interactive": false,
+        "script": "generate-app-backup/run.py"
+      },
+      "mounts": {
+        "app": "/project/"
+      }
+    }
+  ]
 }
