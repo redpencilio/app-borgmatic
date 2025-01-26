@@ -1,21 +1,35 @@
 #!/usr/bin/env python3
 import sys
 import os
+import re
 import random
 import inspect
 import yaml
 from pathlib import Path
 
 def main() -> None:
+  type, ssh_connection_string, hostname, app_name = validate_arguments(sys.argv)
   work_dir = "/project"
-  ssh_connection_string = sys.argv[1]
-  hostname = sys.argv[2]
-  app_name = sys.argv[3]
   print(f"\nGenerating config to backup {app_name}")
   passphrase = generate_passphrase()
-  generate_borgmatic_config(ssh_connection_string, hostname, app_name, passphrase, work_dir)
-  update_docker_compose_override(app_name, work_dir)
+  generate_borgmatic_config(type, ssh_connection_string, hostname, app_name, passphrase, work_dir)
+  update_docker_compose_override(type, app_name, work_dir)
   print_post_script_documentation(app_name)
+
+def validate_arguments(sys_args) -> [str]:
+  _, type, ssh_connection_string, hostname, app_name = sys_args
+
+  if type not in ["app", "http-log"]:
+    print("Argument 'type' must be one of 'app' or 'http-log'")
+    sys.exit(1)
+
+  ssh_connection_pattern = r':(\d*)$'
+  if re.search(ssh_connection_pattern, ssh_connection_string):
+    valid_ssh_connection_string = ssh_connection_string
+  else:
+    valid_ssh_connection_string = ssh_connection_string + ":"
+
+  return [type, valid_ssh_connection_string, hostname, app_name]
 
 def generate_passphrase() -> str:
   population = "".join(
@@ -33,11 +47,22 @@ def generate_passphrase() -> str:
   print("#########################################################################")
   return passphrase
 
-def generate_borgmatic_config(ssh_connection_string, hostname, app_name, passphrase, work_dir) -> None:
+def generate_borgmatic_config(type, ssh_connection_string, hostname, app_name, passphrase, work_dir) -> None:
   """Generate borgmatic configuration file for backup of a semantic.works application stack"""
   config_file_path = os.path.join(work_dir, "config/borgmatic.d", f"{app_name}.yml")
 
-  config_content = inspect.cleandoc(
+  if type == "app":
+    config_content = borgmatic_config_for_semantic_works_app(ssh_connection_string, hostname, app_name, passphrase)
+  else:
+    config_content = borgmatic_config_for_http_logs(ssh_connection_string, hostname, app_name, passphrase)
+
+  print(f"Creating Borgmatic config file at .{config_file_path[len(work_dir):]}")
+  with open(config_file_path, "w", encoding="utf-8") as file:
+    file.write(config_content)
+  os.chmod(config_file_path, 0o600)
+
+def borgmatic_config_for_semantic_works_app(ssh_connection_string, hostname, app_name, passphrase) -> str:
+  return inspect.cleandoc(
     f"""
     archive_name_format: '{hostname}-{app_name}-{{now}}'
 
@@ -67,12 +92,34 @@ def generate_borgmatic_config(ssh_connection_string, hostname, app_name, passphr
         - prune
     """
   )
-  print(f"Creating Borgmatic config file at .{config_file_path[len(work_dir):]}")
-  with open(config_file_path, "w", encoding="utf-8") as file:
-    file.write(config_content)
-  os.chmod(config_file_path, 0o600)
 
-def update_docker_compose_override(app_name, work_dir) -> None:
+def borgmatic_config_for_http_logs(ssh_connection_string, hostname, app_name, passphrase) -> str:
+  return inspect.cleandoc(
+    f"""
+    archive_name_format: '{hostname}-{app_name}-{{now}}'
+
+    repositories:
+        - path: "ssh://{ssh_connection_string}/./{hostname}-{app_name}.borg"
+          label: {app_name}
+
+    encryption_passphrase: "{passphrase}"
+    ssh_command: ssh -i /root/.ssh/id_borgmatic
+
+    source_directories:
+        - /data/{app_name}/data/compressed/*/*.tar.gz
+        - /data/{app_name}/data/encrypted/*/*.gpg
+
+    after_backup:
+        - find /data/{app_name}/data/compressed -type f -name "*.tar.gz" -delete
+        - find /data/{app_name}/data/encrypted -type f -name "*.gpg" -delete
+
+    skip_actions:
+        - compact
+        - prune
+    """
+  )
+
+def update_docker_compose_override(type, app_name, work_dir) -> None:
   """Update the mounted volumes in the docker-compose.override.yml"""
 
   # Parse docker-compose.override.yml
@@ -86,17 +133,28 @@ def update_docker_compose_override(app_name, work_dir) -> None:
   services = docker_compose.setdefault("services", {})
   borgmatic_service = services.setdefault("borgmatic", {})
   borgmatic_service_volumes = borgmatic_service.setdefault("volumes", [])
-  borgmatic_service_volumes.extend([
-    f"/data/{app_name}:/data/{app_name}:ro",
-    f"/data/{app_name}/data/db/backups:/data/{app_name}/data/db/backups"
-  ])
+  if type == "app":
+    new_volumes = [
+      f"/data/{app_name}:/data/{app_name}:ro",
+      f"/data/{app_name}/data/db/backups:/data/{app_name}/data/db/backups"
+    ]
+  else:
+    new_volumes = [
+      f"/data/{app_name}/data/compressed:/data/{app_name}/data/compressed",
+      f"/data/{app_name}/data/encrypted:/data/{app_name}/data/encrypted"
+    ]
+  for volume in new_volumes:
+    if volume not in borgmatic_service_volumes:
+      borgmatic_service_volumes.append(volume)
 
   print("- Update BORGMATIC_CONFIG env var of borgmatic-exporter service")
   exporter_service = services.setdefault("borgmatic-exporter", {})
   exporter_service_env_vars = exporter_service.setdefault("environment", {})
   borgmatic_config_env_var = exporter_service_env_vars.setdefault("BORGMATIC_CONFIG", "")
   borgmatic_config_files = [file for file in borgmatic_config_env_var.split(":") if file.strip()]
-  borgmatic_config_files.append(f"/etc/borgmatic.d/{app_name}.yml")
+  new_config_file = f"/etc/borgmatic.d/{app_name}.yml"
+  if new_config_file not in borgmatic_config_files:
+    borgmatic_config_files.append(new_config_file)
   exporter_service_env_vars["BORGMATIC_CONFIG"] = ":".join(borgmatic_config_files)
 
   # Dump content back to docker-compose.override.yml
@@ -114,8 +172,9 @@ def print_post_script_documentation(app_name):
   print(f"> drc exec borgmatic borgmatic create --repository {app_name} --stats")
 
 if __name__ == '__main__':
-  if len(sys.argv) < 3:
-    print(f"\nScript expects 3 args, {len(sys.argv)} were passed.")
+  if len(sys.argv) < 5: # sys.argv[0] is the script name. Arguments start at index 1.
+    print(f"\nScript expects 4 args, only {len(sys.argv) - 1} were passed.")
+    print(f"- type (one of 'app' or 'http-log')")
     print(f"- backup-server-ssh-connection (e.g. u339567-sub1@u339567.your-storagebox.de:23)")
     print(f"- server-hostname (e.g. abb-croco)")
     print(f"- app-name (e.g. app-mandatendatabank)")
