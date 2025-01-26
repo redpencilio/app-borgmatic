@@ -164,11 +164,16 @@ def update_docker_compose_override(type, app_name, work_dir) -> None:
 def print_post_script_documentation(app_name):
   print("\nYour app is almost ready to backup!")
   print("Execute the following steps to finish the setup:")
-  print("> drc up -d ; drc restart borgmatic")
+  print("> drc up -d")
   print(f"> drc exec borgmatic borgmatic init --repository {app_name} --encryption repokey --append-only")
   print(f"> drc exec borgmatic borgmatic key export --repository {app_name}")
-  print("\n!!! Make sure to keep the exported key somewhere save together with the generated passphrase !!!")
-  print("\nTo create a new backup:")
+
+  print("\n####################################################################################################")
+  print("  !!! Make sure to keep the exported key somewhere save together with the generated passphrase !!!")
+  print("####################################################################################################")
+
+  print("\nYou can configure the frequency of automatic backups via the 'BACKUP_CRON' env var on the borgmatic service.")
+  print("To create a new backup manually:")
   print(f"> drc exec borgmatic borgmatic create --repository {app_name} --stats")
 
 if __name__ == '__main__':
