@@ -23,7 +23,7 @@
         "arguments": ["type", "backup-server-ssh-connection", "server-hostname", "app-name"]
       },
       "environment": {
-        "image": "madmuffin/pyyaml:3.8-alpine",
+        "image": "ghcr.io/borgmatic-collective/borgmatic:1.8.13",
         "interactive": false,
         "script": "generate-backup-config/run.py"
       },
