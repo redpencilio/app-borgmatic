@@ -10,7 +10,7 @@
       "environment": {
         "image": "ghcr.io/borgmatic-collective/borgmatic:1.8.13",
         "interactive": true,
-        "script": "generate-app-backup/run.sh"
+        "script": "generate-backup-config/run.sh"
       },
       "mounts": {
         "app": "/project/"
@@ -18,14 +18,14 @@
     },
     {
       "documentation": {
-        "command": "generate-app-backup",
+        "command": "generate-backup-config",
         "description": "Generates Borgmatic configuration to backup http-logs or a semantic.works application.\nArguments:\n- type: one of 'app' or 'http-log'\n- backup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)\n- server-hostname: hostname of the server to backup (e.g. abb-croco)\n- app-name: name of the app to backup (e.g. app-mandatendatabank)",
         "arguments": ["type", "backup-server-ssh-connection", "server-hostname", "app-name"]
       },
       "environment": {
         "image": "madmuffin/pyyaml:3.8-alpine",
         "interactive": false,
-        "script": "generate-app-backup/run.py"
+        "script": "generate-backup-config/run.py"
       },
       "mounts": {
         "app": "/project/"
