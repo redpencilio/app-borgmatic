@@ -3,21 +3,6 @@
   "scripts": [
     {
       "documentation": {
-        "command": "generate-config",
-        "description": "Generates a configuration file for Borgmatic based on questions",
-        "arguments": []
-      },
-      "environment": {
-        "image": "python:3",
-        "interactive": true,
-        "script": "generate-config/run.py"
-      },
-      "mounts": {
-        "app": "/data/app/"
-      }
-    },
-    {
-      "documentation": {
         "command": "init-ssh-key",
         "description": "Generates an SSH key pair for Borgmatic backups and authorizes it on the backup server. The script requires the backup server's password to be passed interatively.\nArguments:\n- backup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)",
         "arguments": ["backup-server-ssh-connection"]
