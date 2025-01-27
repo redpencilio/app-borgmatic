@@ -10,7 +10,7 @@
       "environment": {
         "image": "ghcr.io/borgmatic-collective/borgmatic:1.8.13",
         "interactive": true,
-        "script": "generate-backup-config/run.sh"
+        "script": "init-ssh-key/run.sh"
       },
       "mounts": {
         "app": "/project/"
