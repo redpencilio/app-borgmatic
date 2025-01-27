@@ -18,6 +18,21 @@
     },
     {
       "documentation": {
+        "command": "init-ssh-key",
+        "description": "Generates an SSH key pair for Borgmatic backups and authorizes it on the backup server. The script requires the backup server's password to be passed interatively.\nArguments:\n- backup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)",
+        "arguments": ["backup-server-ssh-connection"]
+      },
+      "environment": {
+        "image": "ghcr.io/borgmatic-collective/borgmatic:1.8.13",
+        "interactive": true,
+        "script": "generate-app-backup/run.sh"
+      },
+      "mounts": {
+        "app": "/project/"
+      }
+    },
+    {
+      "documentation": {
         "command": "generate-app-backup",
         "description": "Generates Borgmatic configuration to backup http-logs or a semantic.works application.\nArguments:\n- type: one of 'app' or 'http-log'\n- backup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)\n- server-hostname: hostname of the server to backup (e.g. abb-croco)\n- app-name: name of the app to backup (e.g. app-mandatendatabank)",
         "arguments": ["type", "backup-server-ssh-connection", "server-hostname", "app-name"]
