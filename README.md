@@ -33,7 +33,7 @@ mv id_borgmatic{,.pub} ~/.ssh/
 
 Borgmatic is now authorized to execute `borg` commands on the remote storage box using the generated SSH key pair `~/.ssh/id_borgmatic`.
 
-This step needs to be executed only once during the initial setup of the backups. It doesn't need to be repeated in the future when new applications are added to the backup. config.
+This step needs to be executed only once during the initial setup of the backups. It doesn't need to be repeated in the future when new applications are added to the backup config.
 
 ### Generate Borgmatic config to backup a semantic.works application (once per application)
 Generate a Borgmatic configuration for the application that needs to be backed up using mu-cli.
@@ -75,7 +75,7 @@ This step needs to be repeated for each application that requires a backup. For 
 ### How to change the backup frequency
 Change the backup frequency by updating the `BACKUP_CRON` environment variable on the `borgmatic` service in `docker-compose.yml`.
 
-This pattern applies on all repositories configured in `./config/borgmatic.d`. It's currently not possible to configure a different pattern per application.
+This pattern applies on all repositories configured in `./config/borgmatic.d`. It's currently not possible to configure a different pattern per backup repository.
 
 Next, up the stack again:
 
