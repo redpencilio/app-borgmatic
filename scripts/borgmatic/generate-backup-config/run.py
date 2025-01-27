@@ -133,16 +133,17 @@ def update_docker_compose_override(type, app_name, work_dir) -> None:
   services = docker_compose.setdefault("services", {})
   borgmatic_service = services.setdefault("borgmatic", {})
   borgmatic_service_volumes = borgmatic_service.setdefault("volumes", [])
+  new_volumes = ["/data/useful-scripts:/data/useful-scripts:ro"]
   if type == "app":
-    new_volumes = [
+    new_volumes.extend([
       f"/data/{app_name}:/data/{app_name}:ro",
       f"/data/{app_name}/data/db/backups:/data/{app_name}/data/db/backups"
-    ]
+    ])
   else:
-    new_volumes = [
+    new_volumes.extend([
       f"/data/{app_name}/data/compressed:/data/{app_name}/data/compressed",
       f"/data/{app_name}/data/encrypted:/data/{app_name}/data/encrypted"
-    ]
+    ])
   for volume in new_volumes:
     if volume not in borgmatic_service_volumes:
       borgmatic_service_volumes.append(volume)
