@@ -10,13 +10,11 @@ services:
       - /root/.ssh/id_borgmatic:/root/.ssh/id_borgmatic:ro  # ssh key for remote repositories
       - /root/.ssh/known_hosts:/root/.ssh/known_hosts       # ssh known_hosts file
       - /var/run/docker.sock:/var/run/docker.sock           # docker socket to communicate with other containers
-      - ./scripts/borgmatic:/app/scripts                    # mu-scripts for borgmatic
     environment:
       DOCKERCLI: true
       TZ: UTC
       BACKUP_CRON: 45 5 * * *
       CRON_COMMAND: /usr/local/bin/borgmatic --stats -v 0 2>&1
-
   borgmatic-exporter:
     image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.5
     restart: always
@@ -30,3 +28,8 @@ services:
       BORGMATIC_CONFIG: /etc/borgmatic.d/config.yml
       BACKUP_CRON: 12 * * * *
       CRON_COMMAND: /usr/bin/curl -s http://localhost:9996/metrics > /data/metrics/borgmatic.prom
+  project-scripts:
+    image: semtech/simple-script-store:1.0.0
+    volumes:
+      - ./scripts/project:/app/scripts/
+    restart: "no"
