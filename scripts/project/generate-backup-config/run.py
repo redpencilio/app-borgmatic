@@ -82,7 +82,7 @@ def borgmatic_config_for_semantic_works_app(ssh_connection_string, hostname, app
         - /data/{app_name}/data/files
 
     before_backup:
-        - /data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps --filter "label=com.docker.compose.project={app_name}" --filter "label=com.docker.compose.service=triplestore" --format "{{.Names}}")
+        - /data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps --filter "label=com.docker.compose.project={app_name}" --filter "label=com.docker.compose.service=triplestore" --format "{{{{.Names}}}}")
 
     after_backup:
         - find /data/{app_name}/data/db/backups -type f -delete
