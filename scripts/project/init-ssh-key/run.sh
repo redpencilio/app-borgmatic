@@ -30,7 +30,7 @@ if [ $? -eq 0 ]; then
   echo "Successfully generated SSH key with access to backup server $user@$host"
   echo ""
   echo "Move the generated SSH key files to ~/.ssh/ folder of the server that needs a backup."
-  echo "> mv id_borgmatic{,.pub} ~/.ssh/"
+  echo "> rm -r ~/.ssh/id_borgmatic/ ; mv id_borgmatic{,.pub} ~/.ssh/"
 else
   echo "Authorizing key on backup server $user@$host failed."
 fi
