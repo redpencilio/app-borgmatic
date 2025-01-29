@@ -3,14 +3,14 @@
   "scripts": [
     {
       "documentation": {
-        "command": "init-ssh-key",
-        "description": "Generates an SSH key pair for Borgmatic backups and authorizes it on the backup server. The script requires the backup server's password to be passed interactively.\nArguments:\n- backup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)",
-        "arguments": ["backup-server-ssh-connection"]
+        "command": "ssh-key",
+        "description": "Add or remove an SSH key pair for Borgmatic backups on a remote server. The key pair needs to be provided in ./ssh-keys/id_borgmatic{,.pub}. The script requires the backup server's password to be passed interactively.\nArguments:\n- operation: one of 'add' or 'rm'\n    add: generates an SSH key pair if none is available in ./ssh-keys and authorizes it on the remote server\n    rm: removes the SSH key from the remote server\n- backup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)",
+        "arguments": ["operation", "backup-server-ssh-connection"]
       },
       "environment": {
         "image": "ghcr.io/borgmatic-collective/borgmatic:1.8.13",
         "interactive": true,
-        "script": "init-ssh-key/run.sh"
+        "script": "ssh-key/run.sh"
       },
       "mounts": {
         "app": "/project/"
@@ -19,7 +19,7 @@
     {
       "documentation": {
         "command": "generate-backup-config",
-        "description": "Generates Borgmatic configuration to backup http-logs or a semantic.works application.\nArguments:\n- type: one of 'app' or 'http-log'\n- backup-server-ssh-connection: user@backup-host:port (e.g. u339567-sub1@u339567.your-storagebox.de:23)\n- server-hostname: hostname of the server to backup (e.g. abb-croco)\n- app-name: name of the app to backup (e.g. app-mandatendatabank)",
+        "description": "Generates Borgmatic configuration to backup http-logs or a semantic.works application.\nArguments:\n- type: one of 'app' or 'http-log'\n- backup-server-ssh-connection: user@backup-host:port (e.g. u1234-sub1@u1234.your-storagebox.de:23)\n- server-hostname: hostname of the server to backup (e.g. abb-croco)\n- app-name: name of the app to backup (e.g. app-mandatendatabank)",
         "arguments": ["type", "backup-server-ssh-connection", "server-hostname", "app-name"]
       },
       "environment": {
