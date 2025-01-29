@@ -12,9 +12,9 @@ def main() -> None:
   work_dir = "/project"
   print(f"\nGenerating config to backup {app_name}")
   passphrase = generate_passphrase()
-  generate_borgmatic_config(type, ssh_connection_string, hostname, app_name, passphrase, work_dir)
+  repository_path = generate_borgmatic_config(type, ssh_connection_string, hostname, app_name, passphrase, work_dir)
   update_docker_compose_override(type, app_name, work_dir)
-  print_post_script_documentation(app_name)
+  print_post_script_documentation(app_name, repository_path, passphrase)
 
 def validate_arguments(sys_args) -> [str]:
   _, type, ssh_connection_string, hostname, app_name = sys_args
@@ -41,33 +41,32 @@ def generate_passphrase() -> str:
   )
   passphrase = "".join(random.choices(population, k=64))
   print("Generating passphrase...")
-  print("#########################################################################")
-  print("                              Passphrase:                                ")
-  print(f"    {passphrase}")
-  print("#########################################################################")
   return passphrase
 
-def generate_borgmatic_config(type, ssh_connection_string, hostname, app_name, passphrase, work_dir) -> None:
+def generate_borgmatic_config(type, ssh_connection_string, hostname, app_name, passphrase, work_dir) -> str:
   """Generate borgmatic configuration file for backup of a semantic.works application stack"""
   config_file_path = os.path.join(work_dir, "config/borgmatic.d", f"{app_name}.yml")
 
+  repository_path = f"ssh://{ssh_connection_string}/./{hostname}-{app_name}.borg"
   if type == "app":
-    config_content = borgmatic_config_for_semantic_works_app(ssh_connection_string, hostname, app_name, passphrase)
+    config_content = borgmatic_config_for_semantic_works_app(repository_path, hostname, app_name, passphrase)
   else:
-    config_content = borgmatic_config_for_http_logs(ssh_connection_string, hostname, app_name, passphrase)
+    config_content = borgmatic_config_for_http_logs(repository_path, hostname, app_name, passphrase)
 
   print(f"Creating Borgmatic config file at .{config_file_path[len(work_dir):]}")
   with open(config_file_path, "w", encoding="utf-8") as file:
     file.write(config_content)
   os.chmod(config_file_path, 0o600)
 
-def borgmatic_config_for_semantic_works_app(ssh_connection_string, hostname, app_name, passphrase) -> str:
+  return repository_path
+
+def borgmatic_config_for_semantic_works_app(repository_path, hostname, app_name, passphrase) -> str:
   return inspect.cleandoc(
     f"""
     archive_name_format: '{hostname}-{app_name}-{{now}}'
 
     repositories:
-        - path: "ssh://{ssh_connection_string}/./{hostname}-{app_name}.borg"
+        - path: "{repository_path}"
           label: {app_name}
 
     encryption_passphrase: "{passphrase}"
@@ -93,13 +92,13 @@ def borgmatic_config_for_semantic_works_app(ssh_connection_string, hostname, app
     """
   )
 
-def borgmatic_config_for_http_logs(ssh_connection_string, hostname, app_name, passphrase) -> str:
+def borgmatic_config_for_http_logs(repository_path, hostname, app_name, passphrase) -> str:
   return inspect.cleandoc(
     f"""
     archive_name_format: '{hostname}-{app_name}-{{now}}'
 
     repositories:
-        - path: "ssh://{ssh_connection_string}/./{hostname}-{app_name}.borg"
+        - path: "{repository_path}"
           label: {app_name}
 
     encryption_passphrase: "{passphrase}"
@@ -162,7 +161,7 @@ def update_docker_compose_override(type, app_name, work_dir) -> None:
   with open(docker_compose_path, "w", encoding="utf-8") as file:
     file.write(yaml.dump(docker_compose, default_flow_style=False))
 
-def print_post_script_documentation(app_name):
+def print_post_script_documentation(app_name, repository_path, passphrase):
   print("\nYour app is almost ready to backup!")
   print("Execute the following steps to finish the setup:")
   print("> drc up -d")
@@ -170,7 +169,11 @@ def print_post_script_documentation(app_name):
   print(f"> drc exec borgmatic borgmatic key export --repository {app_name}")
 
   print("\n####################################################################################################")
-  print("  !!! Make sure to keep the exported key somewhere save together with the generated passphrase !!!")
+  print("  !!! Make sure to keep the exported key somewhere save together with")
+  print("               the generated passphrase and repository path")
+  print("")
+  print(f"    Repository path -> {repository_path}")
+  print(f"    Passphrase -> {passphrase}")
   print("####################################################################################################")
 
   print("\nYou can configure the frequency of automatic backups via the 'BACKUP_CRON' env var on the borgmatic service.")
