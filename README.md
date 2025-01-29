@@ -208,44 +208,6 @@ docker compose up -d exporter
 
 The Borgmatic metrics will now be collected my Prometheus and will be available for visualization in Grafana.
 
-### Restore backups on the client server
-
-To be able to use Borg's FUSE mount capacities, we need to add some settings to the `docker-compose` file.
-These are bundled in `docker-compose.restore.yml`, including a volume mounted to a location on the host for restored files to go.
-
-So to restore backups:
-
-1. Stop the running `borgmatic` container:
-```sh
-docker compose down
-```
-
-2. Modify the `.env` to use `docker-compose.restore.yml` (the line is commented)
-
-3. Start the new restore container:
-```sh
-docker compose up -d
-```
-
-4. Run a shell on the container and mount needed archive(s)
-```sh
-docker compose exec borgmatic bash
-borgmatic mount --archive latest --mount-point /mnt
-```
-
-5. Copy/restore needed files to the bind mount defined in `docker-compose.restore.yml`:
-```sh
-cp /mnt/data/backups/foo /restore
-```
-
-6. Unmount, exit and remove the restore container:
-```sh
-umount /mnt && exit
-docker compose down
-```
-
-7. Don't forget to change the `.env` back to what it was, and to start the borgmatic container again.
-
 ### Run commands inside a container
 
 The syntax when running a `borgmatic` or `borg` command inside a container implies multiple `borgmatic` next to each other.
