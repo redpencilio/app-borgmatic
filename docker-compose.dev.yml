@@ -1,0 +1,18 @@
+services:
+  borgmatic-restore:
+    image: ghcr.io/borgmatic-collective/borgmatic:1.8.13
+    restart: "no"
+    volumes:
+      - ./config/borgmatic.d:/etc/borgmatic.d:ro
+      - ./ssh-keys:/root/.ssh
+      - ./data/restore:/restore
+    environment:
+      DOCKERCLI: true
+      TZ: UTC
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+      - label:disable
+    devices:
+      - /dev/fuse:/dev/fuse
