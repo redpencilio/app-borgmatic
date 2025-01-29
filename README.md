@@ -213,7 +213,7 @@ docker compose up -d exporter
 The Borgmatic metrics will now be collected my Prometheus and will be available for visualization in Grafana.
 
 ### How to run any borgmatic/borg command
-Any `borgmatic` command (see [Borgmatic command-line reference](https://torsion.org/borgmatic/docs/reference/command-line/) can be executed by using `exec` in the `borgmatic-restore` container.
+Any `borgmatic` command (see [Borgmatic command-line reference](https://torsion.org/borgmatic/docs/reference/command-line/)) can be executed by using `exec` in the `borgmatic-restore` container.
 
 ```bash
 docker compose exec borgmatic-restore borgmatic <any-borgmatic-command>
@@ -226,7 +226,7 @@ E.g.
 docker compose exec borgmatic-restore borgmatic list --repository app-mandatendatabank
 ```
 
-Any `borg` command (see [borg usage guide](https://borgbackup.readthedocs.io/en/stable/usage/general.html) can be executed through `borgmatic` by executing:
+Any `borg` command (see [borg usage guide](https://borgbackup.readthedocs.io/en/stable/usage/general.html)) can be executed through `borgmatic` by executing:
 ```bash
 docker compose exec borgmatic-restore borgmatic borg <any-borg-command>
 ```
