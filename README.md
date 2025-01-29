@@ -37,6 +37,8 @@ Borgmatic is now authorized to execute `borg` commands on the remote storage box
 
 This step needs to be executed only once during the initial setup of the backups. It doesn't need to be repeated in the future when new applications are added to the backup config.
 
+When using Hetzner storage boxes for backup, ensure to enable SSH access (which includes Borg support) on the storage box.
+
 #### Generate Borgmatic config to backup a semantic.works application (once per application)
 Generate a Borgmatic configuration for the application that needs to be backed up using mu-cli.
 
@@ -126,6 +128,8 @@ First, we need to make sure we can access the remote backup server from our loca
 mu script project-scripts ssh-key add <user>@<host>:<port>
 ```
 
+When using Hetzner storage boxes, make sure to enable 'External reachability' on the (sub)account such that we cannot reach the storage box from a machine that is not in the Hetzner network.
+
 Next, we will generate a minimalistic Borgmatic configuration to access the remote backup repository.
 
 ``` bash
@@ -208,25 +212,26 @@ docker compose up -d exporter
 
 The Borgmatic metrics will now be collected my Prometheus and will be available for visualization in Grafana.
 
-### Run commands inside a container
+### How to run any borgmatic/borg command
+Any `borgmatic` command (see [Borgmatic command-line reference](https://torsion.org/borgmatic/docs/reference/command-line/) can be executed by using `exec` in the `borgmatic-restore` container.
 
-The syntax when running a `borgmatic` or `borg` command inside a container implies multiple `borgmatic` next to each other.
-The first `borgmatic` is the service name, the second is the `borgmatic` command from inside the container.
+```bash
+docker compose exec borgmatic-restore borgmatic <any-borgmatic-command>
+```
 
-Here are some examples:
-- Run `borgmatic` inside the `borgmatic` container:
+By default, the command will be executed on all repositories configured in `./config/borgmatic.d`. To specify a specific repository, use the `--repository` option.
+
+E.g.
 ```bash
-docker compose exec borgmatic borgmatic ...
+docker compose exec borgmatic-restore borgmatic list --repository app-mandatendatabank
 ```
-- If multiple config files and/or repositories are set, you will need to specify which repository for some commands:
+
+Any `borg` command (see [borg usage guide](https://borgbackup.readthedocs.io/en/stable/usage/general.html) can be executed through `borgmatic` by executing:
 ```bash
-docker compose exec borgmatic borgmatic list --repository foo
+docker compose exec borgmatic-restore borgmatic borg <any-borg-command>
 ```
-- If a `borg` command isn't natively handled by `borgmatic`, you can issue the `borg` subcommand to arbitrarily run a `borg` command.
-  This has the advantage of using the borgmatic configuration, simplifying the underlying `borg` command:
-```bash
-docker compose exec borgmatic borgmatic borg ...
-```
+
+This has the advantage of using the borgmatic configuration, simplifying the underlying `borg` command.
 
 ## Reference
 ### External links
@@ -234,12 +239,3 @@ docker compose exec borgmatic borgmatic borg ...
 - [https://github.com/borgmatic-collective/docker-borgmatic](https://github.com/borgmatic-collective/docker-borgmatic)
 - [https://github.com/maxim-mityutko/borgmatic-exporter](https://github.com/maxim-mityutko/borgmatic-exporter)
 
-## Discussions
-
-### Per-app configuration
-
-It is possible to use multiple configuration files with different configuration values, to backup different parts of the server with a different backup policy.
-This is for example useful to apply different retentions for logs and backup dumps.
-
-To use this, just add several `.yml` files inside `./config/borgmatic.d/`.
-Each invocation of `borgmatic` will apply these files independently, in sequence.
