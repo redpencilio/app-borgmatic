@@ -30,6 +30,21 @@
       "mounts": {
         "app": "/project/"
       }
+    },
+    {
+      "documentation": {
+        "command": "generate-restore-config",
+        "description": "Generates Borgmatic configuration to restore backups.\nArguments:\n- repository_path: complete SSH connection string to the backup repository (e.g. ssh://u1234-sub1@u1234.your-storagebox.de:23/./abb-croco-app-mandatendatabank.borg) \n- passphrase: secret passphrase of the backup repository",
+        "arguments": ["repository_path", "passphrase"]
+      },
+      "environment": {
+        "image": "ghcr.io/borgmatic-collective/borgmatic:1.8.13",
+        "interactive": true,
+        "script": "generate-restore-config/run.py"
+      },
+      "mounts": {
+        "app": "/project/"
+      }
     }
   ]
 }
