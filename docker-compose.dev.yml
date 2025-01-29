@@ -1,4 +1,10 @@
 services:
+  borgmatic:
+    entrypoint: ["echo", "Service disabled"]
+    restart: "no"
+  borgmatic-exporter:
+    entrypoint: ["echo", "Service disabled"]
+    restart: "no"
   borgmatic-restore:
     image: ghcr.io/borgmatic-collective/borgmatic:1.8.13
     restart: "no"
