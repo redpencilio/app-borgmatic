@@ -22,7 +22,7 @@ cd app-borgmatic
 Generate an SSH key pair using mu-cli. The key will be authorized on the remote storage box. Therefore you will need to enter the user's password of the storage box interactively.
 
 ``` bash
-mu script project-scripts init-ssh-key <user>@<host>:<port>
+mu script project-scripts ssh-key add <user>@<host>:<port>
 ```
 
 Next, move the generated SSH key pair to the server's `.ssh/` directory:
@@ -115,6 +115,69 @@ Finally, export the repository key and store it somewhere save together with the
 docker compose exec borgmatic borgmatic key export --repository app-http-logger
 ```
 
+### How to access a backup from your local machine
+This how-to guide assumes `docker-compose.dev.yml` is automatically taken into account on your local machine.
+
+First, we need to make sure we can access the remote backup server from our local machine. If you already have an SSH key with access to the storage box, put the key pair in `./ssh-keys/id_borgmatic{,.pub}`. Otherwise, we will generate an SSH key and grant ourselves (temporary) access. Therefore, you will need to enter the password of the storage box interactively.
+``` bash
+mu script project-scripts ssh-key add <user>@<host>:<port>
+```
+
+Next, we will generate a minimalistic Borgmatic configuration to access the remote backup repository.
+
+``` bash
+mu script project-scripts generate-restore-config <repository_path> <passphrase>
+```
+
+E.g. 
+
+``` bash
+mu script project-scripts generate-restore-config ssh://u1234-sub1@u1234.your-storagebox.de:23/./abb-croco-app-mandatendatabank.borg my-secret-passphrase
+```
+
+Next, start the application stack.
+
+``` bash
+docker compose up -d
+```
+
+You should now be able to access the backup repository on the remote server via the `borgmatic-restore` service.
+
+``` bash
+docker compose exec borgmatic-restore borgmatic list
+```
+
+In order to restore files, `exec` in the `borgmatic-restore` service:
+
+``` bash
+docker compose exec borgmatic-restore bash
+```
+
+Inside the container, mount a repository archive (e.g. `latest`):
+
+``` bash
+borgmatic mount --archive latest --mount-point /mnt
+```
+
+You can now inspect the files in `/mnt/`. Use the `/restore` folder in the container to copy files to `./data/restore` on the host machine.
+
+E.g.
+``` bash
+cp /mnt/data/app-mandatendatabank/docker-compose.yml /restore
+```
+s
+When done, unmount the archive and exit the container.
+
+``` bash
+umount /mnt && exit
+```
+
+Don't forget, when you're finished, to remove the SSH key access from the backup server again:
+
+``` bash
+mu script project-scripts ssh-key rm <user>@<host>:<port>
+```
+
 ### How to include borgmatic metrics in a configured `node-exporter`
 This how-to-guide assumes a metrics stack including a `node-exporter` service is running on your server (e.g. `/data/metrics`). How to setup such a stack is explained in [app-server-monitor](https://github.com/redpencilio/app-server-monitor?tab=readme-ov-file#how-to-add-a-server-to-be-monitored).
 
@@ -141,72 +204,6 @@ docker compose up -d exporter
 ```
 
 The Borgmatic metrics will now be collected my Prometheus and will be available for visualization in Grafana.
-
-### How to setup backups on a server manually, without mu-cli
-
-1. Be root on the server
-
-2. Clone this repo to `/data/app-borgmatic`.
-
-3. Create an SSH keypair for backups, without passphrase, and without overwriting existing keys:
-```bash
-yes n | ssh-keygen -f ~/.ssh/id_borgmatic -N ''
-```
-
-4. Authorize the key on backup server.
-   We're not using `ssh-copy-id` because some Ubuntu versions don't have SFTP mode of
-   `ssh-copy-id`, which is needed by Hetzner's storage boxes.
-
-   **Note**: Adding the `command=...,restrict` part to the line containing the key prevents SFTP/SSH use for anything other than remote borg commands, which helps mitigate the situation where an attacker completely compromises the server:
-```bash
-sftp -P <port> -o StrictHostKeyChecking=accept-new <user>@<host> << EOF
-mkdir .ssh
-get .ssh/authorized_keys /tmp/authorized_keys
-!touch -a /tmp/authorized_keys
-!grep -q "$(cat ~/.ssh/id_borgmatic.pub)" /tmp/authorized_keys || echo 'command="borg serve --umask=077 --info",restrict' $(cat ~/.ssh/id_borgmatic.pub) >> /tmp/authorized_keys
-put /tmp/authorized_keys .ssh/authorized_keys
-!rm /tmp/authorized_keys
-bye
-EOF
-```
-
-5. Create `./config/borgmatic.d/*.yml` file(s) from the provided example:
-```bash
-cp ./examples/app-example-config.yml ./config/borgmatic.d/app-example.yml
-```
-
-6. Open the file and modify the configuration as needed
-
-7. Restrict access to the configuration file as it contains a passphrase:
-```bash
-for f in config/borgmatic.d/*.yml; do
-    chown root: "$f"; chmod 600 "$f"
-done
-```
-
-8. Create a `docker-compose.override.yml`, and modify as needed:
-```bash
-cp ./examples/docker-compose.override.yml ./docker-compose.override.yml
-```
-
-Make sure all folders listed in `source_directories` in the config file are mounted in the borgmatic container.
-
-9. Start the stack:
-```bash
-docker compose up -d
-```
-
-10. Initialize the borg repository
-```bash
-docker compose exec borgmatic borgmatic init --encryption repokey --repository <app-name> --append-only
-```
-
-11. Export the repository key
-Export the repository key and store it somewhere save together with the passphrase. You will need these to be able to restore backups.
-
-``` bash
-docker compose exec borgmatic borgmatic key export --repository <app-name>
-```
 
 ### Restore backups on the client server
 
@@ -245,18 +242,6 @@ docker compose down
 ```
 
 7. Don't forget to change the `.env` back to what it was, and to start the borgmatic container again.
-
-### Restore backups on a local machine
-
-As long as you have the passphrase and SSH key for the repository, you can inspect/export/mount the borgmatic repository from any machine.
-
-Just install Borgmatic (using this repo or locally on your machine) and use the same configuration file(s) as the one configured for the client server.
-
-You then have access to, for example:
-- `borgmatic list`
-- `borgmatic info`
-- `borgmatic extract ...`
-- `borgmatic mount ...`
 
 ### Run commands inside a container
 
