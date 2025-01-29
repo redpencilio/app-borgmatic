@@ -13,7 +13,7 @@ services:
     environment:
       DOCKERCLI: true
       TZ: UTC
-      BACKUP_CRON: 45 5 * * *
+      BACKUP_CRON: 45 2 * * *
       CRON_COMMAND: /usr/local/bin/borgmatic --stats -v 0 2>&1
   borgmatic-exporter:
     image: ghcr.io/maxim-mityutko/borgmatic-exporter:v0.2.5
