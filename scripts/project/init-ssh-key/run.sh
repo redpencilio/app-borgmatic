@@ -12,7 +12,7 @@ fi
 
 echo ""
 echo "Generating SSH key pair..."
-yes n | ssh-keygen -t rsa -f /project/id_borgmatic -N '' > /dev/null
+yes n | ssh-keygen -t rsa -f /project/ssh-keys/id_borgmatic -N '' > /dev/null
 
 echo "Granting access for generated SSH key on backup server $user@$host"
 
@@ -20,7 +20,7 @@ sftp -q -P $port -o StrictHostKeyChecking=accept-new $user@$host > /dev/null 2>&
 mkdir .ssh
 get .ssh/authorized_keys /tmp/authorized_keys
 !touch -a /tmp/authorized_keys
-!grep -q "$(cat /project/id_borgmatic.pub)" /tmp/authorized_keys || echo 'command="borg serve --umask=077 --info",restrict' $(cat /project/id_borgmatic.pub) >> /tmp/authorized_keys
+!grep -q "$(cat /project/ssh-keys/id_borgmatic.pub)" /tmp/authorized_keys || echo 'command="borg serve --umask=077 --info",restrict' $(cat /project/ssh-keys/id_borgmatic.pub) >> /tmp/authorized_keys
 put /tmp/authorized_keys .ssh/authorized_keys
 !rm /tmp/authorized_keys
 bye
@@ -30,7 +30,7 @@ if [ $? -eq 0 ]; then
   echo "Successfully generated SSH key with access to backup server $user@$host"
   echo ""
   echo "Move the generated SSH key files to ~/.ssh/ folder of the server that needs a backup."
-  echo "> rm -r ~/.ssh/id_borgmatic/ ; mv id_borgmatic{,.pub} ~/.ssh/"
+  echo "> mv ./ssh-keys/id_borgmatic{,.pub} ~/.ssh/"
 else
   echo "Authorizing key on backup server $user@$host failed."
 fi
