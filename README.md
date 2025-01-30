@@ -109,6 +109,21 @@ Finally, export the repository key and store it somewhere save together with the
 docker compose exec borgmatic borgmatic key export --repository app-http-logger
 ```
 
+### How to manually trigger a backup
+Assuming you followed the guides to setup backups for your application, you can manually trigger the creation of a backup via:
+
+``` bash
+docker compose exec borgmatic borgmatic create --stats --repository <app-name>
+```
+
+You can optionally provide `--progress` and `-v 1` to have more extensive log output.
+
+If the backup succeeds, the backup archive will be listed when executing:
+
+``` bash
+docker compose exec borgmatic borgmatic list --repository <app-name>
+```
+
 ### How to change the backup frequency
 Change the backup frequency by updating the `BACKUP_CRON` environment variable on the `borgmatic` service in `docker-compose.yml`.
 
