@@ -143,7 +143,7 @@ First, we need to make sure we can access the remote backup server from our loca
 mu script project-scripts ssh-key add <user>@<host>:<port>
 ```
 
-When using Hetzner storage boxes, make sure to enable 'External reachability' on the (sub)account such that we cannot reach the storage box from a machine that is not in the Hetzner network.
+When using Hetzner storage boxes, make sure to enable 'External reachability' on the (sub)account such that we can reach the storage box from a machine that is not in the Hetzner network.
 
 Next, we will generate a minimalistic Borgmatic configuration to access the remote backup repository.
 
