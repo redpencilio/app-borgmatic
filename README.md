@@ -151,7 +151,7 @@ Next, we will generate a minimalistic Borgmatic configuration to access the remo
 mu script project-scripts generate-restore-config <repository_path> <passphrase>
 ```
 
-E.g. 
+E.g.
 
 ``` bash
 mu script project-scripts generate-restore-config ssh://u1234-sub1@u1234.your-storagebox.de:23/./abb-croco-app-mandatendatabank.borg my-secret-passphrase
@@ -169,30 +169,19 @@ You should now be able to access the backup repository on the remote server via 
 docker compose exec borgmatic-restore borgmatic list
 ```
 
-In order to restore files, `exec` in the `borgmatic-restore` service:
+You can list the files in the latest archive by executing
 
 ``` bash
-docker compose exec borgmatic-restore bash
+docker compose exec borgmatic-restore borgmatic list --repository abb-croco-app-mandatendatabank --archive latest
 ```
 
-Inside the container, mount a repository archive (e.g. `latest`):
+You can extract the archive to make the files locally available in the mounted volume `./data/restore`
 
 ``` bash
-borgmatic mount --archive latest --mount-point /mnt
+docker compose exec borgmatic-restore borgmatic extract --repository abb-croco-app-mandatendatabank --archive latest --progress --destination /restore
 ```
 
-You can now inspect the files in `/mnt/`. Use the bind-mounted `/restore` folder in the container to copy files to `./data/restore` on the host machine.
-
-E.g.
-``` bash
-cp /mnt/data/app-mandatendatabank/docker-compose.yml /restore
-```
-
-When done, unmount the archive and exit the container.
-
-``` bash
-umount /mnt && exit
-```
+You can extract only a subfolder/file by using the `--path` option. Without this option the entire archive is extracted.
 
 Don't forget, when you're finished, to remove the SSH key access from the backup server again:
 
