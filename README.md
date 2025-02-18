@@ -30,7 +30,7 @@ mu script project-scripts ssh-key add <user>@<host>:<port>
 Next, move the generated SSH key pair to the server's `.ssh/` directory:
 
 ``` bash
-rm -r ~/.ssh/id_borgmatic/ ; mv id_borgmatic{,.pub} ~/.ssh/
+mv ./ssh-keys/id_borgmatic{,.pub} ~/.ssh/"
 ```
 
 Borgmatic is now authorized to execute `borg` commands on the remote storage box using the generated SSH key pair `~/.ssh/id_borgmatic`.
