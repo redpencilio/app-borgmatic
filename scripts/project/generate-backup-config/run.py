@@ -23,11 +23,12 @@ def validate_arguments(sys_args) -> [str]:
     print("Argument 'type' must be one of 'app' or 'http-log'")
     sys.exit(1)
 
-  ssh_connection_pattern = r':(\d*)$'
+  ssh_connection_pattern = r'^([^@]+@)?[^@:]+(:\d+)?$'
   if re.search(ssh_connection_pattern, ssh_connection_string):
     valid_ssh_connection_string = ssh_connection_string
   else:
-    valid_ssh_connection_string = ssh_connection_string + ":"
+    print("Invalid ssh connection string, must match [user@]hostname[:port]")
+    sys.exit(1)
 
   return [type, valid_ssh_connection_string, hostname, app_name]
 
