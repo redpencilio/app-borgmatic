@@ -77,67 +77,147 @@ validate_account() {
     return 0
 }
 
-# Extract account from repository paths in config files
-extract_old_account() {
+# Validate repository path format (username@hostname should match)
+validate_repository_path() {
+    local -r repo_path="$1"
+    local -r config_file="$2"
+
+    # Extract username and hostname from SSH path
+    if [[ "$repo_path" =~ ssh://([^@]+)@([^.:]+) ]]; then
+        local username="${BASH_REMATCH[1]}"
+        local hostname="${BASH_REMATCH[2]}"
+
+        # Check if username matches hostname
+        if [[ "$username" != "$hostname" ]]; then
+            print_error "Repository path validation failed in $(basename "$config_file")"
+            print_error "Username '$username' does not match hostname '$hostname'"
+            print_error "Expected format: ssh://u123456-sub1@u123456-sub1.your-storagebox.de:23/..."
+            return 1
+        fi
+
+        # Validate account format
+        if ! validate_account "$username"; then
+            print_error "Invalid account format in repository path: $repo_path"
+            return 1
+        fi
+    else
+        print_error "Invalid repository path format in $(basename "$config_file"): $repo_path"
+        print_error "Expected SSH format: ssh://username@hostname:port/path"
+        return 1
+    fi
+
+    return 0
+}
+
+# Global associative arrays to cache parsed YAML data
+declare -A CONFIG_CACHE_ACCOUNTS=()
+declare -A CONFIG_CACHE_LABELS=()
+declare -A CONFIG_CACHE_PATHS=()
+declare -A CONFIG_CACHE_PASSPHRASES=()
+declare CONFIG_PARSED="false"
+
+# Parse all YAML config files once and cache the data
+parse_config_files() {
     local -r config_dir="$1"
-    local accounts=()
 
     if [[ ! -d "$config_dir" ]]; then
         print_error "Config directory does not exist: $config_dir"
         return 1
     fi
 
+    print_status "Parsing configuration files..." >&2
+
     # Process all YAML config files
     while IFS= read -r -d '' config_file; do
-        print_status "Scanning $(basename "$config_file") for accounts..." >&2
+        print_status "Processing $(basename "$config_file")..." >&2
 
-        # Extract repository paths and find account patterns
-        local repo_paths
-        repo_paths=$(yq eval '.repositories[].path' "$config_file" 2>/dev/null | grep -E 'u[0-9]+-sub[0-9]+@' || true)
+        # Extract all repository data in one pass
+        local repo_data
+        repo_data=$(yq eval '.repositories[] | [.path, .label] | @tsv' "$config_file" 2>/dev/null || true)
 
-        while IFS= read -r path; do
-            if [[ -n "$path" && "$path" != "null" ]]; then
-                local account
-                account=$(echo "$path" | grep -oE 'u[0-9]+-sub[0-9]+' | head -1)
-                [[ -n "$account" ]] && accounts+=("$account")
+        # Extract passphrase once per file
+        local passphrase
+        passphrase=$(yq eval '.encryption_passphrase' "$config_file" 2>/dev/null || echo "N/A")
+
+        # Process each repository entry
+        while IFS=$'\t' read -r path label; do
+            if [[ -n "$path" && "$path" != "null" && -n "$label" && "$label" != "null" ]]; then
+                # Validate repository path format
+                if ! validate_repository_path "$path" "$config_file"; then
+                    print_error "Configuration validation failed. Please fix repository paths and try again."
+                    return 1
+                fi
+
+                # Extract and cache account from validated path
+                if [[ "$path" =~ ssh://([^@]+)@ ]]; then
+                    local account="${BASH_REMATCH[1]}"
+                    CONFIG_CACHE_ACCOUNTS["$account"]=1
+                    CONFIG_CACHE_LABELS["$label"]=1
+                    CONFIG_CACHE_PATHS["$label"]="$path"
+                    CONFIG_CACHE_PASSPHRASES["$label"]="$passphrase"
+                fi
             fi
-        done <<< "$repo_paths"
+        done <<< "$repo_data"
     done < <(find "$config_dir" \( -name "*.yml" -o -name "*.yaml" \) -print0 2>/dev/null)
 
-    # Return unique accounts
-    if [[ ${#accounts[@]} -gt 0 ]]; then
-        printf '%s\n' "${accounts[@]}" | sort -u
+    return 0
+}
+
+# Extract accounts from cached data
+extract_old_account() {
+    local -r config_dir="$1"
+
+    # Parse config files if not already done
+    if [[ "$CONFIG_PARSED" != "true" ]]; then
+        if ! parse_config_files "$config_dir"; then
+            return 1
+        fi
+        CONFIG_PARSED="true"
+    fi
+
+    # Return unique accounts from cache
+    if [[ ${#CONFIG_CACHE_ACCOUNTS[@]} -gt 0 ]]; then
+        printf '%s\n' "${!CONFIG_CACHE_ACCOUNTS[@]}" | sort -u
     fi
 }
 
-# Extract repository labels from config files
+# Extract repository labels from cached data
 extract_repository_labels() {
     local -r config_dir="$1"
-    local labels=()
 
-    if [[ ! -d "$config_dir" ]]; then
-        print_error "Config directory does not exist: $config_dir"
-        return 1
+    # Parse config files if not already done
+    if [[ "$CONFIG_PARSED" != "true" ]]; then
+        if ! parse_config_files "$config_dir"; then
+            return 1
+        fi
+        CONFIG_PARSED="true"
     fi
 
-    # Process all YAML config files
-    while IFS= read -r -d '' config_file; do
-        print_status "Scanning $(basename "$config_file") for labels..." >&2
+    # Return unique labels from cache
+    if [[ ${#CONFIG_CACHE_LABELS[@]} -gt 0 ]]; then
+        printf '%s\n' "${!CONFIG_CACHE_LABELS[@]}" | sort -u
+    fi
+}
 
-        # Extract repository labels using yq
-        local repo_labels
-        repo_labels=$(yq eval '.repositories[].label' "$config_file" 2>/dev/null | grep -v '^null$' || true)
+# Get repository info (path or passphrase) for a given label from cache
+get_repository_info() {
+    local -r config_dir="$1"
+    local -r target_label="$2"
+    local -r info_type="$3"  # "path" or "passphrase"
 
-        while IFS= read -r label; do
-            if [[ -n "$label" && "$label" != "null" ]]; then
-                labels+=("$label")
-            fi
-        done <<< "$repo_labels"
-    done < <(find "$config_dir" \( -name "*.yml" -o -name "*.yaml" \) -print0 2>/dev/null)
+    # Parse config files if not already done
+    if [[ "$CONFIG_PARSED" != "true" ]]; then
+        if ! parse_config_files "$config_dir"; then
+            return 1
+        fi
+        CONFIG_PARSED="true"
+    fi
 
-    # Return unique labels
-    if [[ ${#labels[@]} -gt 0 ]]; then
-        printf '%s\n' "${labels[@]}" | sort -u
+    # Return data from cache
+    if [[ "$info_type" == "path" ]]; then
+        echo "${CONFIG_CACHE_PATHS[$target_label]:-}"
+    else
+        echo "${CONFIG_CACHE_PASSPHRASES[$target_label]:-N/A}"
     fi
 }
 
@@ -279,8 +359,10 @@ init_repositories() {
             local key_output
             if key_output=$(docker compose exec borgmatic borgmatic key export --repository "$label" 2>/dev/null); then
                 key_export="SUCCESS"
-                # Store the key output for later display
-                results+=("$label|$init_status|$key_export|$key_output")
+                # Store the key output for later display (preserve newlines with base64)
+                local encoded_key
+                encoded_key=$(echo "$key_output" | base64 -w 0)
+                results+=("$label|$init_status|$key_export|$encoded_key")
             else
                 results+=("$label|$init_status|FAILED|")
             fi
@@ -295,20 +377,39 @@ init_repositories() {
 
     printf "%s\n" "$(seq -s= 60|tr -d '[:digit:]')"
 
-    # Display exported keys
+    # Display results in org-mode table format
     printf "\n"
-    print_status "Repository Keys:"
-    printf "%s\n" "$(seq -s= 80|tr -d '[:digit:]')"
+    print_status "Repository Summary:"
+    printf "\n|%-35s|%-110s|%-142s|%-73s|\n" "Label" "Repository Path" "Encryption Passphrase" "Borg Key"
+    printf "|%s+%s+%s+%s|\n" "$(seq -s- 36|tr -d '[:digit:]')" "$(seq -s- 111|tr -d '[:digit:]')" "$(seq -s- 143|tr -d '[:digit:]')" "$(seq -s- 74|tr -d '[:digit:]')"
 
     for result in "${results[@]}"; do
-        IFS='|' read -r label init_status key_status key_data <<< "$result"
-        if [[ "$key_status" == "SUCCESS" && -n "$key_data" ]]; then
-            printf "\nRepository Label: %s\n" "$label"
-            printf "%s\n" "$(seq -s- 80|tr -d '[:digit:]')"
-            echo "$key_data"
-            printf "%s\n" "$(seq -s- 80|tr -d '[:digit:]')"
+        IFS='|' read -r label init_status key_status encoded_key_data <<< "$result"
+        if [[ "$key_status" == "SUCCESS" && -n "$encoded_key_data" ]]; then
+            # Decode the key data
+            local key_data
+            key_data=$(echo "$encoded_key_data" | base64 -d 2>/dev/null || echo "$encoded_key_data")
+
+            # Get repository path and passphrase for this label
+            local repo_path
+            repo_path=$(get_repository_info "$CONFIG_DIR" "$label" "path")
+            local passphrase
+            passphrase=$(get_repository_info "$CONFIG_DIR" "$label" "passphrase")
+
+            # Split borg key into lines
+            local -a key_lines
+            mapfile -t key_lines <<< "$key_data"
+
+            # First row with label and repo path
+            printf "|%-35s|%-110s|%-142s|%-73s|\n" "$label" "$repo_path" "$passphrase" "${key_lines[0]:-}"
+
+            # Additional rows for remaining key lines
+            for ((i=1; i<${#key_lines[@]}; i++)); do
+                printf "|%-35s|%-110s|%-142s|%-73s|\n" "" "" "" "${key_lines[i]}"
+            done
         fi
     done
+    printf "|%s+%s+%s+%s|\n" "$(seq -s- 36|tr -d '[:digit:]')" "$(seq -s- 111|tr -d '[:digit:]')" "$(seq -s- 143|tr -d '[:digit:]')" "$(seq -s- 74|tr -d '[:digit:]')"
 }
 
 # Main script
