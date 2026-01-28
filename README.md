@@ -113,10 +113,10 @@ docker compose exec borgmatic borgmatic key export --repository app-http-logger
 Assuming you followed the guides to setup backups for your application, you can manually trigger the creation of a backup via:
 
 ``` bash
-docker compose exec borgmatic borgmatic create --stats --repository <app-name>
+docker compose exec borgmatic borgmatic create --progress --stats --repository <app-name>
 ```
 
-You can optionally provide `--progress` and `-v 1` to have more extensive log output.
+You can optionally provide `-v 1` to have more extensive log output.
 
 If the backup succeeds, the backup archive will be listed when executing:
 
