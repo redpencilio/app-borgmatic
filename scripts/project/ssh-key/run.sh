@@ -6,7 +6,7 @@ connection_string=$2
 if [[ $connection_string =~ ^([^@]+)@([^:]+):?(.*)$ ]]; then
   user="${BASH_REMATCH[1]}"
   host="${BASH_REMATCH[2]}"
-  port="${BASH_REMATCH[3]:-23}"
+  port="${BASH_REMATCH[3]:-22}"
 else
   echo ""
   echo "Invalid connection string format '$connection_string'. Expected user@host:port."
