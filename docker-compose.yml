@@ -3,6 +3,7 @@ services:
     image: ghcr.io/borgmatic-collective/borgmatic:1.8.13
     restart: always
     volumes:
+      - ./config/useful-scripts:/useful-scripts
       - ./config/borgmatic.d:/etc/borgmatic.d:ro            # borgmatic config file(s)
       - ./data/.borgmatic:/root/.borgmatic                  # borgmatic state files
       - ./data/.config/borg:/root/.config/borg              # config and keyfiles

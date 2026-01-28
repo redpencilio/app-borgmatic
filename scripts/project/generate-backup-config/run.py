@@ -82,7 +82,7 @@ def borgmatic_config_for_semantic_works_app(repository_path, hostname, app_name,
         - /data/{app_name}/data/files
 
     before_backup:
-        - /data/useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps --filter "label=com.docker.compose.project={app_name}" --filter "label=com.docker.compose.service=triplestore" --format "{{{{.Names}}}}")
+        - /useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps --filter "label=com.docker.compose.project={app_name}" --filter "label=com.docker.compose.service=triplestore" --format "{{{{.Names}}}}")
 
     after_backup:
         - find /data/{app_name}/data/db/backups -type f -delete
@@ -133,7 +133,7 @@ def update_docker_compose_override(type, app_name, work_dir) -> None:
   services = docker_compose.setdefault("services", {})
   borgmatic_service = services.setdefault("borgmatic", {})
   borgmatic_service_volumes = borgmatic_service.setdefault("volumes", [])
-  new_volumes = ["/data/useful-scripts:/data/useful-scripts:ro"]
+  new_volumes = []
   if type == "app":
     new_volumes.extend([
       f"/data/{app_name}:/data/{app_name}:ro",

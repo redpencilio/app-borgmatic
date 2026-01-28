@@ -1,6 +1,8 @@
 *.swp
 data/
-config/
+config/*
+!config/useful-scripts
+!config/useful-scripts/*
 docker-compose.override.yml
 ssh-keys/
 
