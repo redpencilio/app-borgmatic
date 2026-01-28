@@ -179,7 +179,7 @@ def print_post_script_documentation(app_name, repository_path, passphrase):
 
   print("\nYou can configure the frequency of automatic backups via the 'BACKUP_CRON' env var on the borgmatic service.")
   print("To create a new backup manually:")
-  print(f"> drc exec borgmatic borgmatic create --repository {app_name} --stats")
+  print(f"> drc exec borgmatic borgmatic create --repository {app_name} --stats --progress")
 
 if __name__ == '__main__':
   if len(sys.argv) < 5: # sys.argv[0] is the script name. Arguments start at index 1.
