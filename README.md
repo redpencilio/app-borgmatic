@@ -151,6 +151,8 @@ Next, we will generate a minimalistic Borgmatic configuration to access the remo
 mu script project-scripts generate-restore-config <repository_path> <passphrase>
 ```
 
+Note: `<repository_path> <passphrase>` should have been generated during the setup of the backup.
+
 E.g.
 
 ``` bash
