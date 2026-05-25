@@ -5,6 +5,10 @@ import re
 import inspect
 from pathlib import Path
 
+# SSH multiplexing flags. Storage boxes cap concurrent SSH sessions; sharing a
+# single session across parallel borg invocations avoids "Connection refused".
+MULTIPLEXED_SSH_OPTIONS = "-o ControlMaster=auto -o ControlPath=/tmp/ssh-%r@%h:%p -o ControlPersist=60s"
+
 def main() -> None:
   _, repository_path, passphrase = sys.argv
   work_dir = "/project"
@@ -32,7 +36,7 @@ def generate_borgmatic_config(repository_path, repository_name, passphrase, work
   ssh_work_dir_key_path = os.path.join(work_dir, "ssh-keys", "id_borgmatic")
   ssh_container_key_path = "/root/.ssh/id_borgmatic"
   if os.path.exists(ssh_work_dir_key_path):
-    config_content += f"\nssh_command: ssh -i {ssh_container_key_path}"
+    config_content += f"\nssh_command: ssh -i {ssh_container_key_path} {MULTIPLEXED_SSH_OPTIONS}"
   else:
     print(f"\nNo SSH key found in .{ssh_work_dir_key_path[len(work_dir):]}.\nRestore will be configured to use password authentication which may be cumbersome since you'll have to enter the password multiple times.\nIf you want to authenticate with an SSH key, provide one in .{ssh_work_dir_key_path[len(work_dir):]} and rerun the script.\n")
 
