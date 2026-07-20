@@ -55,6 +55,9 @@ The script will generate a new config in `./config/borgmatic.d/<app-name>.yml` a
 
 Open the config file and make sure `source_directories` contain the folders that need to be backed up.
 
+> [!Note]
+> By default the generated config file uses `triplestore` as name for the triplestore service. If your app uses another name, e.g. `virtuoso`, be sure to update the service name used in the `before-backup` command.
+
 Next, (re)up the Borgmatic stack:
 
 ``` bash
