@@ -74,12 +74,7 @@ def borgmatic_config_for_semantic_works_app(repository_path, hostname, app_name,
     ssh_command: ssh -i /root/.ssh/id_borgmatic
 
     source_directories:
-        - /data/{app_name}/docker-compose*.yml
-        - /data/{app_name}/config
-        - /data/{app_name}/data/db
-        - /data/{app_name}/data/authorization
-        - /data/{app_name}/data/elasticsearch
-        - /data/{app_name}/data/files
+        - /data/{app_name}
 
     before_backup:
         - /useful-scripts/virtuoso-backup.sh $(/usr/bin/docker ps --filter "label=com.docker.compose.project={app_name}" --filter "label=com.docker.compose.service=triplestore" --format "{{{{.Names}}}}")
