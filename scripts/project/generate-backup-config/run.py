@@ -7,6 +7,11 @@ import inspect
 import yaml
 from pathlib import Path
 
+# SSH multiplexing flags. borgmatic-exporter runs across all repos at once.
+# Storage boxes cap concurrent SSH sessions and refuse extras.
+# ControlMaster makes those parallel borg invocations share one SSH session.
+MULTIPLEXED_SSH_COMMAND = "ssh -i /root/.ssh/id_borgmatic -o ControlMaster=auto -o ControlPath=/tmp/ssh-%r@%h:%p -o ControlPersist=60s"
+
 def main() -> None:
   type, ssh_connection_string, hostname, app_name = validate_arguments(sys.argv)
   work_dir = "/project"
@@ -71,7 +76,7 @@ def borgmatic_config_for_semantic_works_app(repository_path, hostname, app_name,
           label: {app_name}
 
     encryption_passphrase: "{passphrase}"
-    ssh_command: ssh -i /root/.ssh/id_borgmatic
+    ssh_command: {MULTIPLEXED_SSH_COMMAND}
 
     source_directories:
         - /data/{app_name}/docker-compose*.yml
@@ -103,7 +108,7 @@ def borgmatic_config_for_http_logs(repository_path, hostname, app_name, passphra
           label: {app_name}
 
     encryption_passphrase: "{passphrase}"
-    ssh_command: ssh -i /root/.ssh/id_borgmatic
+    ssh_command: {MULTIPLEXED_SSH_COMMAND}
 
     source_directories:
         - /data/{app_name}/data/compressed/*/*.tar.gz
