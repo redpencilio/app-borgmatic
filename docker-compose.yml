@@ -28,7 +28,7 @@ services:
       BORGMATIC_EXPORTER_PORT: 9996
       BORGMATIC_CONFIG: /etc/borgmatic.d/config.yml
       BACKUP_CRON: 12 * * * *
-      CRON_COMMAND: /usr/bin/curl -s http://localhost:9996/metrics > /data/metrics/borgmatic.prom
+      CRON_COMMAND: curl -sf http://localhost:9996/metrics > /data/metrics/borgmatic.prom.tmp && mv /data/metrics/borgmatic.prom.tmp /data/metrics/borgmatic.prom
   project-scripts:
     image: semtech/simple-script-store:1.0.0
     volumes:
